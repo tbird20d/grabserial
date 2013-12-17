@@ -33,9 +33,17 @@ import getopt
 import serial
 import time
 import re
+from serial.tools import list_ports
 
 cmd = os.path.basename(sys.argv[0])
 verbose = 0
+
+def device_exists(device):
+	for port in list_ports.comports():
+		if port[0] == device:
+			return True
+
+	return False
 
 def vprint(message):
 	if verbose:
@@ -127,7 +135,7 @@ def main():
 			usage(0)
                 if opt in ["-d", "--device"]:
                         device = arg
-			if not os.path.exists(device):
+			if not device_exists(device):
 				print "Error: serial device '%s' does not exist" % device
 				usage(2)
 		if opt in ["-b", "--baudrate"]:
