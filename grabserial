@@ -13,6 +13,8 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2013.12.19 - Version 1.5.2 - verify Windows ports w/ serial.tools.list_ports
+#   (thanks to Yegor Yefromov for the idea and code)
 #  2013.12.16 - Version 1.5.1 - Change my e-mail address
 #  2011.12.19 - Version 1.5.0 - add options for mid-line time capture
 #    (instantpat) and base time from launch of program instead of
@@ -26,7 +28,7 @@
 
 MAJOR_VERSION=1
 MINOR_VERSION=5
-REVISION=1
+REVISION=2
 
 import os, sys
 import getopt
@@ -75,6 +77,19 @@ each line, and re-setting the base time when the line starting with
 "Linux version" is seen.
 """ % (cmd, cmd, cmd, cmd)
 	sys.exit(rcode)
+
+def device_exists(device):
+	try:
+		from serial.tools import list_ports
+
+		for port in list_ports.comports():
+			if port[0] == device:
+				return True
+
+		return False
+	except:
+		return os.path.exists(device)
+		
 
 def main():
 	global verbose
@@ -127,7 +142,7 @@ def main():
 			usage(0)
                 if opt in ["-d", "--device"]:
                         device = arg
-			if not os.path.exists(device):
+			if not device_exists(device):
 				print "Error: serial device '%s' does not exist" % device
 				usage(2)
 		if opt in ["-b", "--baudrate"]:
