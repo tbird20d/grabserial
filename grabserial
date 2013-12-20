@@ -35,9 +35,17 @@ import getopt
 import serial
 import time
 import re
+from serial.tools import list_ports
 
 cmd = os.path.basename(sys.argv[0])
 verbose = 0
+
+def device_exists(device):
+	for port in list_ports.comports():
+		if port[0] == device:
+			return True
+
+	return False
 
 def vprint(message):
 	if verbose:
