@@ -41,10 +41,10 @@ verbose = 0
 
 def vprint(message):
 	if verbose:
-		print message
+		print(message)
 
 def usage(rcode):
-	print """%s : Serial line reader
+	print("""%s : Serial line reader
 	Usage: %s [options] <config_file>
 options:
     -h, --help             Print this message
@@ -75,7 +75,7 @@ Ex: %s -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
 each line, and re-setting the base time when the line starting with
 "Linux version" is seen.
-""" % (cmd, cmd, cmd, cmd)
+""" % (cmd, cmd, cmd, cmd))
 	sys.exit(rcode)
 
 def device_exists(device):
@@ -116,7 +116,7 @@ def main():
 				"version"])
 	except:
 		# print help info and exit
-		print "Error parsing command line options"
+		print("Error parsing command line options")
 		usage(2)
 
 	device="/dev/ttyS0"
@@ -143,31 +143,31 @@ def main():
                 if opt in ["-d", "--device"]:
                         device = arg
 			if not device_exists(device):
-				print "Error: serial device '%s' does not exist" % device
+				print("Error: serial device '%s' does not exist" % device)
 				usage(2)
 		if opt in ["-b", "--baudrate"]:
 			baudrate = int(arg)
 			if baudrate not in sd.BAUDRATES:
-				print "Error: invalid baud rate '%d' specified" % baudrate
-				print "Valid baud rates are: %s" % str(sd.BAUDRATES)
+				print("Error: invalid baud rate '%d' specified" % baudrate)
+				print("Valid baud rates are: %s" % str(sd.BAUDRATES))
 				sys.exit(3)
                 if opt in ["-p", "--parity"]:
 			parity = arg.upper()
 			if parity not in sd.PARITIES:
-				print "Error: invalid parity '%s' specified" % parity
-				print "Valid parities are: %s" % str(sd.PARITIES)
+				print("Error: invalid parity '%s' specified" % parity)
+				print("Valid parities are: %s" % str(sd.PARITIES))
 				sys.exit(3)
 		if opt in ["-w", "--width"]:
 			width = int(arg)
 			if width not in sd.BYTESIZES:
-				print "Error: invalid data bit width '%d' specified" % width
-				print "Valid data bit widths are: %s" % str(sd.BYTESIZES)
+				print("Error: invalid data bit width '%d' specified" % width)
+				print("Valid data bit widths are: %s" % str(sd.BYTESIZES))
 				sys.exit(3)
 		if opt in ["-s", "--stopbits"]:
 			stopbits = int(arg)
 			if stopbits not in sd.STOPBITS:
-				print "Error: invalid stopbits '%d' specified" % stopbits
-				print "Valid stopbits are: %s" % str(sd.STOPBITS)
+				print("Error: invalid stopbits '%d' specified" % stopbits)
+				print("Valid stopbits are: %s" % str(sd.STOPBITS))
 				sys.exit(3)
 		if opt in ["-c", "--command"]:
 			command = arg
@@ -189,12 +189,12 @@ def main():
 			try:
 				endtime = time.time()+float(endstr)
 			except:
-				print "Error: invalid endtime %s specified" % arg
+				print("Error: invalid endtime %s specified" % arg)
 				sys.exit(3)
 		if opt in ["-v", "--verbose"]:
 			verbose=1
 		if opt in ["-V", "--version"]:
-			print "grabserial version %d.%d.%d" % (MAJOR_VERSION, MINOR_VERSION, REVISION)
+			print("grabserial version %d.%d.%d" % (MAJOR_VERSION, MINOR_VERSION, REVISION))
 			sys.exit(0)
 
 	# if verbose, show what our settings are
