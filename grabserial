@@ -13,6 +13,8 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2014.01.07 - Version 1.6.0 - add option for exiting based on a
+#    mid-line pattern (quitpat). Simeon Miteff <simeon.miteff@gmail.com>
 #  2013.12.19 - Version 1.5.2 - verify Windows ports w/ serial.tools.list_ports
 #   (thanks to Yegor Yefromov for the idea and code)
 #  2013.12.16 - Version 1.5.1 - Change my e-mail address
@@ -27,8 +29,8 @@
 #    the serial port before grabbing output
 
 MAJOR_VERSION=1
-MINOR_VERSION=5
-REVISION=2
+MINOR_VERSION=6
+REVISION=0
 
 import os, sys
 import getopt
@@ -67,6 +69,8 @@ options:
                            this base time.
     -i, --instantpat=<pat> Specify a regular expression pattern to have its time
                            reported at end of run.  Works mid-line.
+    -q, --quitpat=<pat>    Specify a regular expression pattern to end the
+                           program.  Works mid-line.
     -l, --launchtime       Set base time from launch of program.
     -v, --verbose          Show verbose runtime messages
     -V, --version          Show version number and exit
@@ -97,7 +101,7 @@ def main():
 	# parse the command line options
 	try:
 		opts, args = getopt.getopt(sys.argv[1:],
-			 "hli:d:b:w:p:s:xrc:tm:e:vV", [
+			 "hli:d:b:w:p:s:xrc:tm:e:vVq:", [
 				"help", 
 				"launchtime", 
 				"instantpat=", 
@@ -113,7 +117,8 @@ def main():
 				"match=", 
 				"endtime=",
 				"verbose", 
-				"version"])
+				"version",
+				"quitpat="])
 	except:
 		# print help info and exit
 		print("Error parsing command line options")
@@ -129,6 +134,7 @@ def main():
 	show_time = 0
 	basepat = ""
 	instantpat = ''
+	quitpat = ''
 	basetime = 0
 	instanttime = None
 	endtime = 0
@@ -181,6 +187,8 @@ def main():
 			basepat=arg
 		if opt in ["-i", "--instantpat"]:
 			instantpat=arg
+		if opt in ["-q", "--quitpat"]:
+			quitpat=arg
 		if opt in ["-l", "--launchtime"]:
 			print('setting basetime to time of program launch')
 			basetime = time.time()
@@ -209,6 +217,8 @@ def main():
 		vprint("Matching pattern '%s' to set base time" % basepat)
 	if instantpat:
 		vprint("Instant pattern '%s' to set base time" % instantpat)
+	if quitpat:
+		vprint("Instant pattern '%s' to exit program" % quitpat)
 
 	# now actually open and configure the requested serial port
 	# specify a read timeout of 1 second
@@ -265,6 +275,10 @@ def main():
 			     re.search(instantpat, curline):
 			#	instantpat in curline:
 				instanttime = time.time()
+				
+			# Exit the loop if quitpat matches
+			if quitpat and re.search(quitpat, curline):
+				break
 
 			if x=="\n":
 				newline = 1
