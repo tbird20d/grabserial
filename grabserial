@@ -93,7 +93,7 @@ def device_exists(device):
 		return False
 	except:
 		return os.path.exists(device)
-		
+
 
 def main():
 	global verbose
@@ -102,21 +102,21 @@ def main():
 	try:
 		opts, args = getopt.getopt(sys.argv[1:],
 			 "hli:d:b:w:p:s:xrc:tm:e:vVq:", [
-				"help", 
-				"launchtime", 
-				"instantpat=", 
+				"help",
+				"launchtime",
+				"instantpat=",
 				"device=",
-				"baudrate=", 
+				"baudrate=",
 				"width=",
 				"parity=",
 				"stopbits=",
-				"xonxoff", 
+				"xonxoff",
 				"rtscts",
 				"command=",
-				"time", 
-				"match=", 
+				"time",
+				"match=",
 				"endtime=",
-				"verbose", 
+				"verbose",
 				"version",
 				"quitpat="])
 	except:
@@ -193,7 +193,7 @@ def main():
 			print('setting basetime to time of program launch')
 			basetime = time.time()
 		if opt in ["-e", "--endtime"]:
-			endstr=arg 
+			endstr=arg
 			try:
 				endtime = time.time()+float(endstr)
 			except:
@@ -269,13 +269,13 @@ def main():
 			# FIXTHIS - should I buffer the output here??
 			sys.stdout.write(x)
 			curline += x
-			
-			# watch for patterns 
+
+			# watch for patterns
 			if instantpat and not instanttime and \
 			     re.search(instantpat, curline):
 			#	instantpat in curline:
 				instanttime = time.time()
-				
+
 			# Exit the loop if quitpat matches
 			if quitpat and re.search(quitpat, curline):
 				break
