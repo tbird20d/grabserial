@@ -29,8 +29,8 @@
 #    the serial port before grabbing output
 
 MAJOR_VERSION=1
-MINOR_VERSION=6
-REVISION=1
+MINOR_VERSION=7
+REVISION=0
 
 import os, sys
 import getopt
@@ -57,6 +57,7 @@ options:
     -s, --stopbits=<val>   Set the stopbits (default 1)
     -x, --xonxoff          Enable software flow control (default off)
     -r, --rtscts           Enable RTS/CTS flow control (default off)
+    -f, --force-reset      Force pyserial to reset device parameters
     -e, --endtime=<secs>   End the program after the specified seconds have
                            elapsed.
     -c, --command=<cmd>    Send a command to the port before reading
@@ -101,7 +102,7 @@ def main():
 	# parse the command line options
 	try:
 		opts, args = getopt.getopt(sys.argv[1:],
-			 "hli:d:b:w:p:s:xrc:tm:e:vVq:", [
+			 "hli:d:b:w:p:s:xrfc:tm:e:vVq:", [
 				"help",
 				"launchtime",
 				"instantpat=",
@@ -112,6 +113,7 @@ def main():
 				"stopbits=",
 				"xonxoff",
 				"rtscts",
+				"force-reset",
 				"command=",
 				"time",
 				"match=",
@@ -193,6 +195,8 @@ def main():
 			sd.xonxoff = True
 		if opt in ["-r", "--rtscts"]:
 			sd.rtscts = True
+		if opt in ["-f", "--force-set"]:
+			force = True
 		if opt in ["-t", "--time"]:
 			show_time=1
 		if opt in ["-m", "--match"]:
@@ -240,7 +244,18 @@ def main():
 	curline = ""
 	vprint("Use Control-C to stop...")
 
+	if force:
+	# pyserial does not reconfigure the device if the settings
+	# don't change from the previous ones.  This causes issues
+	# with (at least) some USB serial converters
+		toggle = sd.xonxoff
+		sd.xonxoff = not toggle
+		sd.open()
+		sd.close()
+		sd.xonxoff = toggle
 	sd.open()
+	sd.flushInput()
+	sd.flushOutput()
 
 	if command:
 		sd.write(command + "\n")
