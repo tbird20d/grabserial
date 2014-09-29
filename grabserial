@@ -30,7 +30,7 @@
 
 MAJOR_VERSION=1
 MINOR_VERSION=6
-REVISION=0
+REVISION=1
 
 import os, sys
 import getopt
@@ -56,7 +56,7 @@ options:
     -p, --parity=<val>     Set the parity (default N)
     -s, --stopbits=<val>   Set the stopbits (default 1)
     -x, --xonxoff          Enable software flow control (default off)
-    -r, --rtscts           Enable RTC/CTS flow control (default off)
+    -r, --rtscts           Enable RTS/CTS flow control (default off)
     -e, --endtime=<secs>   End the program after the specified seconds have
                            elapsed.
     -c, --command=<cmd>    Send a command to the port before reading
@@ -124,13 +124,18 @@ def main():
 		print("Error parsing command line options")
 		usage(2)
 
-	device="/dev/ttyS0"
-	baudrate=115200
-	width=8
-	parity='N'
-	stopbits=1
-	xon=0
-	rtc=0
+	sd = serial.Serial()
+	sd.port="/dev/ttyS0"
+	sd.baudrate=115200
+	sd.bytesize=serial.EIGHTBITS
+	sd.parity=serial.PARITY_NONE
+	sd.stopbits=serial.STOPBITS_ONE
+	sd.xonxoff=False
+	sd.rtscts=False
+	sd.dsrdtr=False
+	# specify a read timeout of 1 second
+	sd.timeout=1
+	force = False
 	show_time = 0
 	basepat = ""
 	instantpat = ''
@@ -140,9 +145,6 @@ def main():
 	endtime = 0
 	command = ""
 
-	# get a dummy instance for error checking
-	sd = serial.Serial()
-
 	for opt, arg in opts:
 		if opt in ["-h", "--help"]:
 			usage(0)
@@ -150,37 +152,47 @@ def main():
                         device = arg
 			if not device_exists(device):
 				print("Error: serial device '%s' does not exist" % device)
+			        sd.close()
 				usage(2)
+			sd.port = device
 		if opt in ["-b", "--baudrate"]:
-			baudrate = int(arg)
-			if baudrate not in sd.BAUDRATES:
+			baud = int(arg)
+			if baud not in sd.BAUDRATES:
 				print("Error: invalid baud rate '%d' specified" % baudrate)
 				print("Valid baud rates are: %s" % str(sd.BAUDRATES))
+			        sd.close()
 				sys.exit(3)
+			sd.baudrate = baud
                 if opt in ["-p", "--parity"]:
-			parity = arg.upper()
-			if parity not in sd.PARITIES:
-				print("Error: invalid parity '%s' specified" % parity)
+			par = arg.upper()
+			if par not in sd.PARITIES:
+				print("Error: invalid parity '%s' specified" % par)
 				print("Valid parities are: %s" % str(sd.PARITIES))
+			        sd.close()
 				sys.exit(3)
+			sd.parity = par
 		if opt in ["-w", "--width"]:
 			width = int(arg)
 			if width not in sd.BYTESIZES:
 				print("Error: invalid data bit width '%d' specified" % width)
 				print("Valid data bit widths are: %s" % str(sd.BYTESIZES))
+				sd.close()
 				sys.exit(3)
+			sd.bytesize = width
 		if opt in ["-s", "--stopbits"]:
-			stopbits = int(arg)
-			if stopbits not in sd.STOPBITS:
-				print("Error: invalid stopbits '%d' specified" % stopbits)
+			stop = int(arg)
+			if stop not in sd.STOPBITS:
+				print("Error: invalid stopbits '%d' specified" % stop)
 				print("Valid stopbits are: %s" % str(sd.STOPBITS))
+			        sd.close()
 				sys.exit(3)
+			sd.stopbits = stop
 		if opt in ["-c", "--command"]:
 			command = arg
 		if opt in ["-x", "--xonxoff"]:
-			xon = 1
-		if opt in ["-r", "--rtcdtc"]:
-			rtc = 1
+			sd.xonxoff = True
+		if opt in ["-r", "--rtscts"]:
+			sd.rtscts = True
 		if opt in ["-t", "--time"]:
 			show_time=1
 		if opt in ["-m", "--match"]:
@@ -198,17 +210,19 @@ def main():
 				endtime = time.time()+float(endstr)
 			except:
 				print("Error: invalid endtime %s specified" % arg)
+			        sd.close()
 				sys.exit(3)
 		if opt in ["-v", "--verbose"]:
 			verbose=1
 		if opt in ["-V", "--version"]:
 			print("grabserial version %d.%d.%d" % (MAJOR_VERSION, MINOR_VERSION, REVISION))
+			sd.close()
 			sys.exit(0)
 
 	# if verbose, show what our settings are
-	vprint("Opening serial port %s" % device)
-	vprint("%d:%d%s%s:xonxoff=%d:rtcdtc=%d" % (baudrate, width,
-		 parity, stopbits, xon, rtc))
+	vprint("Opening serial port %s" % sd.port)
+	vprint("%d:%d%s%s:xonxoff=%d:rtscts=%d" % (sd.baudrate, sd.bytesize,
+		 sd.parity, sd.stopbits, sd.xonxoff, sd.rtscts))
 	if endtime:
 		vprint("Program will end in %s seconds" % endstr)
 	if show_time:
@@ -220,26 +234,23 @@ def main():
 	if quitpat:
 		vprint("Instant pattern '%s' to exit program" % quitpat)
 
-	# now actually open and configure the requested serial port
-	# specify a read timeout of 1 second
-	s = serial.Serial(device, baudrate, width, parity, stopbits, 1,
-		xon, rtc)
-
-	# read from the serial port until something stops the program
 	prev1 = 0
 	linetime = 0
 	newline = 1
 	curline = ""
 	vprint("Use Control-C to stop...")
 
-	if command:
-		s.write(command + "\n")
-		s.flush()
+	sd.open()
 
+	if command:
+		sd.write(command + "\n")
+		sd.flush()
+
+	# read from the serial port until something stops the program
 	while(1):
 		try:
 			# read for up to 1 second
-			x = s.read()
+			x = sd.read()
 
 			# see if we're supposed to stop yet
 			if endtime and time.time()>endtime:
@@ -291,7 +302,7 @@ def main():
 		except:
 			break
 
-	s.close()
+	sd.close()
 	if instanttime:
 		instanttime_str = '%4.6f' % (instanttime-basetime)
 		sys.stdout.write('\nThe instantpat: "' + instantpat + '", was matched at ' + instanttime_str)
