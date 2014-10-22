@@ -72,6 +72,7 @@ options:
     -q, --quitpat=<pat>    Specify a regular expression pattern to end the
                            program.  Works mid-line.
     -l, --launchtime       Set base time from launch of program.
+    -f, --file=<name>      Store read data to file.
     -v, --verbose          Show verbose runtime messages
     -V, --version          Show version number and exit
 
@@ -101,7 +102,7 @@ def main():
 	# parse the command line options
 	try:
 		opts, args = getopt.getopt(sys.argv[1:],
-			 "hli:d:b:w:p:s:xrc:tm:e:vVq:", [
+			"hli:d:b:w:p:s:xrc:tm:e:f:vVq:", [
 				"help",
 				"launchtime",
 				"instantpat=",
@@ -116,6 +117,7 @@ def main():
 				"time",
 				"match=",
 				"endtime=",
+				"file=",
 				"verbose",
 				"version",
 				"quitpat="])
@@ -137,6 +139,7 @@ def main():
 	quitpat = ''
 	basetime = 0
 	instanttime = None
+	outputfile = None
 	endtime = 0
 	command = ""
 
@@ -192,6 +195,8 @@ def main():
 		if opt in ["-l", "--launchtime"]:
 			print('setting basetime to time of program launch')
 			basetime = time.time()
+		if opt in ["-f", "--file"]:
+			outputfile=arg
 		if opt in ["-e", "--endtime"]:
 			endstr=arg
 			try:
@@ -219,6 +224,13 @@ def main():
 		vprint("Instant pattern '%s' to set base time" % instantpat)
 	if quitpat:
 		vprint("Instant pattern '%s' to exit program" % quitpat)
+	if outputfile:
+		try:
+			f = open(outputfile, "wb")
+		except IOError:
+			print("Can't open output file '%s'" % outputfile)
+			sys.exit(1)
+		vprint("Store data to '%s'" % outputfile)
 
 	# now actually open and configure the requested serial port
 	# specify a read timeout of 1 second
@@ -261,13 +273,17 @@ def main():
 				linetime = time.time()
 				elapsed = linetime-basetime
 				delta = elapsed-prev1
-				sys.stdout.write("[%4.6f %2.6f] " %  \
-					(elapsed, delta))
+				msg = "[%4.6f %2.6f] " % (elapsed, delta)
+				sys.stdout.write(msg)
+				if outputfile:
+					f.write(msg)
 				prev1 = elapsed
 				newline = 0
 
 			# FIXTHIS - should I buffer the output here??
 			sys.stdout.write(x)
+			if outputfile:
+				f.write(x)
 			curline += x
 
 			# watch for patterns
@@ -288,13 +304,21 @@ def main():
 					prev1 = 0
 				curline = ""
 			sys.stdout.flush()
+			if outputfile:
+				f.flush()
 		except:
 			break
 
 	s.close()
 	if instanttime:
 		instanttime_str = '%4.6f' % (instanttime-basetime)
-		sys.stdout.write('\nThe instantpat: "' + instantpat + '", was matched at ' + instanttime_str)
+		msg = '\nThe instantpat: "' + instantpat + '", was matched at ' + instanttime_str
+		sys.stdout.write(msg)
 		sys.stdout.flush()
+		if outputfile:
+			f.write(msg)
+			f.flush()
+	if outputfile:
+		f.close()
 
 main()
