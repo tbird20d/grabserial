@@ -63,6 +63,9 @@ options:
     -t, --time             Print time for each line received.  The time is
                            when the first character of each line is
                            received by %s
+    -T, --systime          Print system time for each line received. The time is
+                           when the first character of each line is
+                           received by %s
     -m, --match=<pat>      Specify a regular expression pattern to match to
                            set a base time.  Time values for lines after the
                            line matching the pattern will be relative to
@@ -80,7 +83,7 @@ Ex: %s -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
 each line, and re-setting the base time when the line starting with
 "Linux version" is seen.
-""" % (cmd, cmd, cmd, cmd))
+""" % (cmd, cmd, cmd, cmd, cmd))
 	sys.exit(rcode)
 
 def device_exists(device):
@@ -102,7 +105,7 @@ def main():
 	# parse the command line options
 	try:
 		opts, args = getopt.getopt(sys.argv[1:],
-			"hli:d:b:w:p:s:xrc:tm:e:f:vVq:", [
+			"hli:d:b:w:p:s:xrc:tTm:e:f:vVq:", [
 				"help",
 				"launchtime",
 				"instantpat=",
@@ -115,6 +118,7 @@ def main():
 				"rtscts",
 				"command=",
 				"time",
+				"systime",
 				"match=",
 				"endtime=",
 				"file=",
@@ -134,6 +138,7 @@ def main():
 	xon=0
 	rtc=0
 	show_time = 0
+	show_systime = 0
 	basepat = ""
 	instantpat = ''
 	quitpat = ''
@@ -186,6 +191,10 @@ def main():
 			rtc = 1
 		if opt in ["-t", "--time"]:
 			show_time=1
+			show_systime=0
+		if opt in ["-T", "--systime"]:
+			show_time=0
+			show_systime=1
 		if opt in ["-m", "--match"]:
 			basepat=arg
 		if opt in ["-i", "--instantpat"]:
@@ -218,6 +227,8 @@ def main():
 		vprint("Program will end in %s seconds" % endstr)
 	if show_time:
 		vprint("Printing timing information for each line")
+	if show_systime:
+		vprint("Printing absolute timing information for each line")
 	if basepat:
 		vprint("Matching pattern '%s' to set base time" % basepat)
 	if instantpat:
@@ -274,6 +285,18 @@ def main():
 				elapsed = linetime-basetime
 				delta = elapsed-prev1
 				msg = "[%4.6f %2.6f] " % (elapsed, delta)
+				sys.stdout.write(msg)
+				if outputfile:
+					f.write(msg)
+				prev1 = elapsed
+				newline = 0
+
+			if show_systime and newline:
+				linetime = time.time()
+				linetimestr = time.strftime('%y-%m-%d %H:%M:%S', time.localtime(linetime))
+				elapsed = linetime-basetime
+				delta = elapsed-prev1
+				msg = "[%s %2.6f] " % (linetimestr, delta)
 				sys.stdout.write(msg)
 				if outputfile:
 					f.write(msg)
