@@ -13,6 +13,8 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2015.03.10 - Version 1.8.0 - add -T option for absolute times
+#    contributed by ramaxlo
 #  2015.03.10 - Version 1.7.1 - add line feed to instantpat result line
 #  2014.09.28 - Version 1.7.0 - add option for force reset for USB serial
 #    contributed by John Mehaffey <mehaf@gedanken.com>
@@ -32,8 +34,8 @@
 #    the serial port before grabbing output
 
 MAJOR_VERSION=1
-MINOR_VERSION=7
-REVISION=1
+MINOR_VERSION=8
+REVISION=0
 
 import os, sys
 import getopt
@@ -67,6 +69,9 @@ options:
     -t, --time             Print time for each line received.  The time is
                            when the first character of each line is
                            received by %s
+    -T, --systime          Print system time for each line received. The time
+                           is the absolute local time when the first character
+                           of each line is received by %s
     -m, --match=<pat>      Specify a regular expression pattern to match to
                            set a base time.  Time values for lines after the
                            line matching the pattern will be relative to
@@ -83,7 +88,7 @@ Ex: %s -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
 each line, and re-setting the base time when the line starting with
 "Linux version" is seen.
-""" % (cmd, cmd, cmd, cmd))
+""" % (cmd, cmd, cmd, cmd, cmd))
 	sys.exit(rcode)
 
 def device_exists(device):
@@ -105,7 +110,7 @@ def main():
 	# parse the command line options
 	try:
 		opts, args = getopt.getopt(sys.argv[1:],
-			 "hli:d:b:w:p:s:xrfc:tm:e:vVq:", [
+			 "hli:d:b:w:p:s:xrfc:tTm:e:vVq:", [
 				"help",
 				"launchtime",
 				"instantpat=",
@@ -119,6 +124,7 @@ def main():
 				"force-reset",
 				"command=",
 				"time",
+				"systime",
 				"match=",
 				"endtime=",
 				"verbose",
@@ -142,6 +148,7 @@ def main():
 	sd.timeout=1
 	force = False
 	show_time = 0
+	show_systime = 0
 	basepat = ""
 	instantpat = ''
 	quitpat = ''
@@ -202,6 +209,10 @@ def main():
 			force = True
 		if opt in ["-t", "--time"]:
 			show_time=1
+			show_systime=0
+		if opt in ["-T", "--systime"]:
+			show_time=0
+			show_systime=1
 		if opt in ["-m", "--match"]:
 			basepat=arg
 		if opt in ["-i", "--instantpat"]:
@@ -234,6 +245,8 @@ def main():
 		vprint("Program will end in %s seconds" % endstr)
 	if show_time:
 		vprint("Printing timing information for each line")
+	if show_systime:
+		vprint("Printing absolute timing information for each line")
 	if basepat:
 		vprint("Matching pattern '%s' to set base time" % basepat)
 	if instantpat:
@@ -292,6 +305,18 @@ def main():
 				delta = elapsed-prev1
 				sys.stdout.write("[%4.6f %2.6f] " %  \
 					(elapsed, delta))
+				prev1 = elapsed
+				newline = 0
+
+			if show_systime and newline:
+				linetime = time.time()
+				linetimestr = time.strftime(
+					'%y-%m-%d %H:%M:%S',
+					time.localtime(linetime))
+				elapsed = linetime-basetime
+				delta = elapsed-prev1
+				sys.stdout.write("[%s %2.6f] " %  \
+					(linetimestr, delta))
 				prev1 = elapsed
 				newline = 0
 
