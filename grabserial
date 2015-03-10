@@ -13,6 +13,9 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2015.03.10 - Version 1.7.1 - add line feed to instantpat result line
+#  2014.09.28 - Version 1.7.0 - add option for force reset for USB serial
+#    contributed by John Mehaffey <mehaf@gedanken.com>
 #  2014.01.07 - Version 1.6.0 - add option for exiting based on a
 #    mid-line pattern (quitpat). Simeon Miteff <simeon.miteff@gmail.com>
 #  2013.12.19 - Version 1.5.2 - verify Windows ports w/ serial.tools.list_ports
@@ -30,7 +33,7 @@
 
 MAJOR_VERSION=1
 MINOR_VERSION=7
-REVISION=0
+REVISION=1
 
 import os, sys
 import getopt
@@ -320,7 +323,7 @@ def main():
 	sd.close()
 	if instanttime:
 		instanttime_str = '%4.6f' % (instanttime-basetime)
-		sys.stdout.write('\nThe instantpat: "' + instantpat + '", was matched at ' + instanttime_str)
+		sys.stdout.write('\nThe instantpat: "' + instantpat + '", was matched at ' + instanttime_str+'\n')
 		sys.stdout.flush()
 
 main()
