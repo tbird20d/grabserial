@@ -13,8 +13,8 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
-#  2015.03.10 - Version 1.8.0 - add -T option for absolute times
-#    contributed by ramaxlo
+#  2015.03.10 - Version 1.8.0 - add -o option for saving output to a file
+#    add -T option for absolute times. Both contributed by ramaxlo
 #  2015.03.10 - Version 1.7.1 - add line feed to instantpat result line
 #  2014.09.28 - Version 1.7.0 - add option for force reset for USB serial
 #    contributed by John Mehaffey <mehaf@gedanken.com>
@@ -26,10 +26,8 @@
 #  2011.12.19 - Version 1.5.0 - add options for mid-line time capture
 #    (instantpat) and base time from launch of program instead of
 #    first char seen (launchtime) - contributed by Kent Borg
-#
-#  2011-09-24  better time output and time delta
+#  2011-09-24 - better time output and time delta
 #    Constantine Shulyupin <const@makelinux.com>
-#
 #  2008-06-02 - Version 1.1.0 add support for sending a command to
 #    the serial port before grabbing output
 
@@ -81,6 +79,7 @@ options:
     -q, --quitpat=<pat>    Specify a regular expression pattern to end the
                            program.  Works mid-line.
     -l, --launchtime       Set base time from launch of program.
+    -o, --output=<name>    Output data to the named file.
     -v, --verbose          Show verbose runtime messages
     -V, --version          Show version number and exit
 
@@ -110,7 +109,7 @@ def main():
 	# parse the command line options
 	try:
 		opts, args = getopt.getopt(sys.argv[1:],
-			 "hli:d:b:w:p:s:xrfc:tTm:e:vVq:", [
+			 "hli:d:b:w:p:s:xrfc:tTm:e:o:vVq:", [
 				"help",
 				"launchtime",
 				"instantpat=",
@@ -127,6 +126,7 @@ def main():
 				"systime",
 				"match=",
 				"endtime=",
+				"output=",
 				"verbose",
 				"version",
 				"quitpat="])
@@ -155,6 +155,7 @@ def main():
 	basetime = 0
 	instanttime = None
 	endtime = 0
+	outputfile = None
 	command = ""
 
 	for opt, arg in opts:
@@ -230,6 +231,8 @@ def main():
 				print("Error: invalid endtime %s specified" % arg)
 			        sd.close()
 				sys.exit(3)
+		if opt in ["-o", "--output"]:
+			outputfile = arg
 		if opt in ["-v", "--verbose"]:
 			verbose=1
 		if opt in ["-V", "--version"]:
@@ -253,6 +256,13 @@ def main():
 		vprint("Instant pattern '%s' to set base time" % instantpat)
 	if quitpat:
 		vprint("Instant pattern '%s' to exit program" % quitpat)
+	if outputfile:
+		try:
+			out = open(outputfile, "wb")
+		except IOError:
+			print("Can't open output file '%s'" % outputfile)
+			sys.exit(1)
+		vprint("Saving data to '%s'" % outputfile)
 
 	prev1 = 0
 	linetime = 0
@@ -303,8 +313,10 @@ def main():
 				linetime = time.time()
 				elapsed = linetime-basetime
 				delta = elapsed-prev1
-				sys.stdout.write("[%4.6f %2.6f] " %  \
-					(elapsed, delta))
+				msg ="[%4.6f %2.6f] " % (elapsed, delta)
+				sys.stdout.write(msg)
+				if outputfile:
+					out.write(msg)
 				prev1 = elapsed
 				newline = 0
 
@@ -315,13 +327,17 @@ def main():
 					time.localtime(linetime))
 				elapsed = linetime-basetime
 				delta = elapsed-prev1
-				sys.stdout.write("[%s %2.6f] " %  \
-					(linetimestr, delta))
+				msg = "[%s %2.6f] " % (linetimestr, delta)
+				sys.stdout.write(msg)
+				if outputfile:
+					out.write(msg)
 				prev1 = elapsed
 				newline = 0
 
 			# FIXTHIS - should I buffer the output here??
 			sys.stdout.write(x)
+			if outputfile:
+				out.write(x)
 			curline += x
 
 			# watch for patterns
@@ -342,13 +358,23 @@ def main():
 					prev1 = 0
 				curline = ""
 			sys.stdout.flush()
+			if outputfile:
+				out.flush()
 		except:
 			break
 
 	sd.close()
 	if instanttime:
 		instanttime_str = '%4.6f' % (instanttime-basetime)
-		sys.stdout.write('\nThe instantpat: "' + instantpat + '", was matched at ' + instanttime_str+'\n')
+		msg = '\nThe instantpat: "%s" was matched at %s\n' % \
+			(instantpat, instanttime_str)
+		sys.stdout.write(msg)
 		sys.stdout.flush()
+		if outputfile:
+			out.write(msg)
+			out.flush()
+
+	if outputfile:
+		out.close()
 
 main()
