@@ -2,10 +2,12 @@
 #
 # grabserial - program to read a serial port and send the data to stdout
 #
-# Copyright 2006 Sony Corporation
+# Copyright 2006,2015 Sony Corporation
 #
 # This program is provided under the Gnu General Public License (GPL)
-# version 2 ONLY.
+# version 2 ONLY. This program is distributed WITHOUT ANY WARRANTY.
+# See the LICENSE file, which should have accompanied this program,
+# for the text of the license.
 #
 # 2006-09-07 by Tim Bird <tim.bird@sonymobile.com>
 #
@@ -13,6 +15,8 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2015.04.23 - Version 1.8.1 - remove instructions for applying LICENSE text
+#    to new files, and add no-warranty language to grabserial.
 #  2015.03.10 - Version 1.8.0 - add -o option for saving output to a file
 #    add -T option for absolute times. Both contributed by ramaxlo
 #  2015.03.10 - Version 1.7.1 - add line feed to instantpat result line
@@ -33,7 +37,7 @@
 
 MAJOR_VERSION=1
 MINOR_VERSION=8
-REVISION=0
+REVISION=1
 
 import os, sys
 import getopt
