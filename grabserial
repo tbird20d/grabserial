@@ -14,6 +14,7 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2016.05.10 - Version 1.9.1 - allow skipping the tty check with -S
 #  2016.05.10 - Version 1.9.0 - support use as a python module
 #    Note that the main module routine will be grabserial.grab(args,[outputfd])
 #      where args is a list of command-line-style args
@@ -40,7 +41,7 @@
 
 MAJOR_VERSION=1
 MINOR_VERSION=9
-REVISION=0
+REVISION=1
 
 import os, sys
 import getopt
@@ -90,6 +91,8 @@ options:
     -o, --output=<name>    Output data to the named file.
     -v, --verbose          Show verbose runtime messages
     -V, --version          Show version number and exit
+    -S, --skip             Skip sanity checking of the serial device.
+                           May be needed for some devices.
 
 Ex: %s -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
@@ -124,7 +127,7 @@ def grab(arglist, outputfd=sys.stdout):
 	# parse the command line options
 	try:
 		opts, args = getopt.getopt(arglist,
-			 "hli:d:b:w:p:s:xrfc:tTm:e:o:vVq:", [
+			 "hli:d:b:w:p:s:xrfc:tTm:e:o:vVq:S", [
 				"help",
 				"launchtime",
 				"instantpat=",
@@ -144,7 +147,8 @@ def grab(arglist, outputfd=sys.stdout):
 				"output=",
 				"verbose",
 				"version",
-				"quitpat="])
+				"quitpat=",
+				"skip"])
 	except:
 		# print help info and exit
 		print("Error parsing command line options")
@@ -172,14 +176,17 @@ def grab(arglist, outputfd=sys.stdout):
 	endtime = 0
 	outputfile = None
 	command = ""
+	skip_device_check = 0
 
 	for opt, arg in opts:
 		if opt in ["-h", "--help"]:
 			usage(0)
                 if opt in ["-d", "--device"]:
                         device = arg
-			if not device_exists(device):
-				print("Error: serial device '%s' does not exist" % device)
+			if not skip_device_check and not device_exists(device):
+				print("Error: serial device '%s' does not exist, aborting." % device)
+				print("  If you think this port really exists, then try using the -S option")
+				print("  to skip the serial device check. (put it before the -d argument)")
 			        sd.close()
 				usage(2)
 			sd.port = device
@@ -254,6 +261,8 @@ def grab(arglist, outputfd=sys.stdout):
 			print("grabserial version %d.%d.%d" % (MAJOR_VERSION, MINOR_VERSION, REVISION))
 			sd.close()
 			sys.exit(0)
+		if opt in ["-S"]:
+			skip_device_check=1
 
 	# if verbose, show what our settings are
 	vprint("Opening serial port %s" % sd.port)
@@ -271,6 +280,8 @@ def grab(arglist, outputfd=sys.stdout):
 		vprint("Instant pattern '%s' to set base time" % instantpat)
 	if quitpat:
 		vprint("Instant pattern '%s' to exit program" % quitpat)
+	if skip_device_check:
+		vprint("Skipping check of serial device")
 	if outputfile:
 		try:
 			out = open(outputfile, "wb")
