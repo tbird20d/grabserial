@@ -13,6 +13,11 @@ If you have the python 'serial' module, you can just place grabserial
 in a directory on your path, or add the directory containing grabserial
 to your path, or just invoke grabserial directly.
 
- $ path/to/program/grabserial
+This should work:
+
+ $ sudo cp grabserial /usr/local/bin
+ $ grabserial
 
 You can also install this as a python module with: 'python setup.py install'
+(Some users have reported problems with this - let me know if it doesn't
+work for you.)
