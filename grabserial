@@ -2,17 +2,24 @@
 #
 # grabserial - program to read a serial port and send the data to stdout
 #
-# Copyright 2006 Sony Corporation
+# Copyright 2006,2016 Sony Corporation
 #
 # This program is provided under the Gnu General Public License (GPL)
 # version 2 ONLY.
 #
-# 2006-09-07 by Tim Bird <tim.bird@sonymobile.com>
+# 2016-05-10 by Tim Bird <tim.bird@am.sony.com>
+# 2006-09-07 by Tim Bird
 #
 # To do:
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2016.05.10 - Version 1.9.0 - support use as a python module
+#    Note that the main module routine will be grabserial.grab(args,[outputfd])
+#      where args is a list of command-line-style args
+#      as they would be passed using the standalone program.  e.g.
+#      grabserial.grab(None, ["-d", "/dev/ttyUSB0", "-v"])
+#      output from the serial port (with timing data) is sent to outputfd
 #  2015.03.10 - Version 1.8.0 - add -o option for saving output to a file
 #    add -T option for absolute times. Both contributed by ramaxlo
 #  2015.03.10 - Version 1.7.1 - add line feed to instantpat result line
@@ -32,7 +39,7 @@
 #    the serial port before grabbing output
 
 MAJOR_VERSION=1
-MINOR_VERSION=8
+MINOR_VERSION=9
 REVISION=0
 
 import os, sys
@@ -41,7 +48,6 @@ import serial
 import time
 import re
 
-cmd = os.path.basename(sys.argv[0])
 verbose = 0
 
 def vprint(message):
@@ -49,6 +55,8 @@ def vprint(message):
 		print(message)
 
 def usage(rcode):
+	cmd = "grabserial"
+
 	print("""%s : Serial line reader
 	Usage: %s [options] <config_file>
 options:
@@ -102,13 +110,20 @@ def device_exists(device):
 	except:
 		return os.path.exists(device)
 
-
-def main():
+# grab - main routine to grab a serial port and time the output of each line
+# takes a list of arguments, as they would have been passed in sys.argv
+# that is, a list of strings.
+# also can take an optional file descriptor for where to send the data
+# by default, data read from the serial port is sent to sys.stdout, but
+# you can specify your own (already open) file descriptor, or None.  This
+# would only make sense if you specified another outputfile with
+#    "-o","myoutputfile"
+def grab(arglist, outputfd=sys.stdout):
 	global verbose
 
 	# parse the command line options
 	try:
-		opts, args = getopt.getopt(sys.argv[1:],
+		opts, args = getopt.getopt(arglist,
 			 "hli:d:b:w:p:s:xrfc:tTm:e:o:vVq:", [
 				"help",
 				"launchtime",
@@ -314,7 +329,8 @@ def main():
 				elapsed = linetime-basetime
 				delta = elapsed-prev1
 				msg ="[%4.6f %2.6f] " % (elapsed, delta)
-				sys.stdout.write(msg)
+				if outputfd:
+					outputfd.write(msg)
 				if outputfile:
 					out.write(msg)
 				prev1 = elapsed
@@ -377,4 +393,5 @@ def main():
 	if outputfile:
 		out.close()
 
-main()
+if __name__=="__main__":
+	grab(sys.argv[1:])
