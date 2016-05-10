@@ -5,7 +5,9 @@
 # Copyright 2006,2016 Sony Corporation
 #
 # This program is provided under the Gnu General Public License (GPL)
-# version 2 ONLY.
+# version 2 ONLY. This program is distributed WITHOUT ANY WARRANTY.
+# See the LICENSE file, which should have accompanied this program,
+# for the text of the license.
 #
 # 2016-05-10 by Tim Bird <tim.bird@am.sony.com>
 # 2006-09-07 by Tim Bird
@@ -21,6 +23,8 @@
 #      as they would be passed using the standalone program.  e.g.
 #      grabserial.grab(None, ["-d", "/dev/ttyUSB0", "-v"])
 #      output from the serial port (with timing data) is sent to outputfd
+#  2015.04.23 - Version 1.8.1 - remove instructions for applying LICENSE text
+#    to new files, and add no-warranty language to grabserial.
 #  2015.03.10 - Version 1.8.0 - add -o option for saving output to a file
 #    add -T option for absolute times. Both contributed by ramaxlo
 #  2015.03.10 - Version 1.7.1 - add line feed to instantpat result line
