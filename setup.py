@@ -4,12 +4,13 @@
 import os
 from setuptools import setup
 
-VERSION = '1.9.1'
+VERSION = '1.9.2'
 
 setup(
     name='grabserial',
     version=VERSION,
     scripts=['grabserial',],
+    #packages=['grabserial',],
     author='Tim Bird',
     author_email='tbird20d@yahoo.com',
 

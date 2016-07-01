@@ -16,6 +16,7 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2016.07.01 - Version 1.9.2 - change how version is stored
 #  2016.05.10 - Version 1.9.1 - allow skipping the tty check with -S
 #  2016.05.10 - Version 1.9.0 - support use as a python module
 #    Note that the main module routine will be grabserial.grab(args,[outputfd])
@@ -43,9 +44,7 @@
 #  2008-06-02 - Version 1.1.0 add support for sending a command to
 #    the serial port before grabbing output
 
-MAJOR_VERSION=1
-MINOR_VERSION=9
-REVISION=1
+VERSION=(1,9,2)
 
 import os, sys
 import getopt
@@ -262,7 +261,7 @@ def grab(arglist, outputfd=sys.stdout):
 		if opt in ["-v", "--verbose"]:
 			verbose=1
 		if opt in ["-V", "--version"]:
-			print("grabserial version %d.%d.%d" % (MAJOR_VERSION, MINOR_VERSION, REVISION))
+			print("grabserial version %d.%d.%d" % VERSION)
 			sd.close()
 			sys.exit(0)
 		if opt in ["-S"]:
