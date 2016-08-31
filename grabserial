@@ -16,6 +16,7 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2016.08.30 - Version 1.9.3 - allow forcing the baudrate with -B
 #  2016.07.01 - Version 1.9.2 - change how version is stored
 #  2016.05.10 - Version 1.9.1 - allow skipping the tty check with -S
 #  2016.05.10 - Version 1.9.0 - support use as a python module
@@ -44,7 +45,7 @@
 #  2008-06-02 - Version 1.1.0 add support for sending a command to
 #    the serial port before grabbing output
 
-VERSION=(1,9,2)
+VERSION=(1,9,3)
 
 import os, sys
 import getopt
@@ -67,6 +68,8 @@ options:
     -h, --help             Print this message
     -d, --device=<devpath> Set the device to read (default '/dev/ttyS0')
     -b, --baudrate=<val>   Set the baudrate (default 115200)
+    -B <val>               Force the baudrate to the indicated value
+                             (grabserial won't check that the baudrate is legal)
     -w, --width=<val>      Set the data bit width (default 8)
     -p, --parity=<val>     Set the parity (default N)
     -s, --stopbits=<val>   Set the stopbits (default 1)
@@ -130,7 +133,7 @@ def grab(arglist, outputfd=sys.stdout):
 	# parse the command line options
 	try:
 		opts, args = getopt.getopt(arglist,
-			 "hli:d:b:w:p:s:xrfc:tTm:e:o:vVq:S", [
+                        "hli:d:b:B:w:p:s:xrfc:tTm:e:o:vVq:S", [
 				"help",
 				"launchtime",
 				"instantpat=",
@@ -196,11 +199,14 @@ def grab(arglist, outputfd=sys.stdout):
 		if opt in ["-b", "--baudrate"]:
 			baud = int(arg)
 			if baud not in sd.BAUDRATES:
-				print("Error: invalid baud rate '%d' specified" % baudrate)
-				print("Valid baud rates are: %s" % str(sd.BAUDRATES))
+				print("Error: invalid baud rate '%d' specified" % baud)
+                                print("Valid baud rates are: %s" % str(sd.BAUDRATES))
+                                print("You can force the baud rate using the -B option")
 			        sd.close()
 				sys.exit(3)
 			sd.baudrate = baud
+		if opt == "-B":
+                        sd.baudrate = int(arg)
                 if opt in ["-p", "--parity"]:
 			par = arg.upper()
 			if par not in sd.PARITIES:
