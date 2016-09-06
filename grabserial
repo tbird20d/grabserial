@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+# vim: set ts=4 sw=4 noet :
 #
 # grabserial - program to read a serial port and send the data to stdout
 #
@@ -16,6 +17,8 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2016.09.06 - clean up tabs, and add vim modeline for 4-column tabs
+#               grabserial should always run with python -tt grabserial
 #  2016.08.31 - add microsecond precision when using system Time (-T) option
 #  2016.08.30 - Version 1.9.3 - allow forcing the baudrate with -B
 #  2016.07.01 - Version 1.9.2 - change how version is stored
@@ -189,32 +192,32 @@ def grab(arglist, outputfd=sys.stdout):
 	for opt, arg in opts:
 		if opt in ["-h", "--help"]:
 			usage(0)
-                if opt in ["-d", "--device"]:
-                        device = arg
+		if opt in ["-d", "--device"]:
+			device = arg
 			if not skip_device_check and not device_exists(device):
 				print("Error: serial device '%s' does not exist, aborting." % device)
 				print("  If you think this port really exists, then try using the -S option")
 				print("  to skip the serial device check. (put it before the -d argument)")
-			        sd.close()
+				sd.close()
 				usage(2)
 			sd.port = device
 		if opt in ["-b", "--baudrate"]:
 			baud = int(arg)
 			if baud not in sd.BAUDRATES:
 				print("Error: invalid baud rate '%d' specified" % baud)
-                                print("Valid baud rates are: %s" % str(sd.BAUDRATES))
-                                print("You can force the baud rate using the -B option")
-			        sd.close()
+				print("Valid baud rates are: %s" % str(sd.BAUDRATES))
+				print("You can force the baud rate using the -B option")
+				sd.close()
 				sys.exit(3)
 			sd.baudrate = baud
 		if opt == "-B":
-                        sd.baudrate = int(arg)
-                if opt in ["-p", "--parity"]:
+			sd.baudrate = int(arg)
+		if opt in ["-p", "--parity"]:
 			par = arg.upper()
 			if par not in sd.PARITIES:
 				print("Error: invalid parity '%s' specified" % par)
 				print("Valid parities are: %s" % str(sd.PARITIES))
-			        sd.close()
+				sd.close()
 				sys.exit(3)
 			sd.parity = par
 		if opt in ["-w", "--width"]:
@@ -230,7 +233,7 @@ def grab(arglist, outputfd=sys.stdout):
 			if stop not in sd.STOPBITS:
 				print("Error: invalid stopbits '%d' specified" % stop)
 				print("Valid stopbits are: %s" % str(sd.STOPBITS))
-			        sd.close()
+				sd.close()
 				sys.exit(3)
 			sd.stopbits = stop
 		if opt in ["-c", "--command"]:
@@ -262,7 +265,7 @@ def grab(arglist, outputfd=sys.stdout):
 				endtime = time.time()+float(endstr)
 			except:
 				print("Error: invalid endtime %s specified" % arg)
-			        sd.close()
+				sd.close()
 				sys.exit(3)
 		if opt in ["-o", "--output"]:
 			outputfile = arg
