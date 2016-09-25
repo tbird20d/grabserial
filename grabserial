@@ -57,8 +57,10 @@ import serial
 import time
 import datetime
 import re
+import thread
 
 verbose = 0
+cmdinput = ""
 
 def vprint(message):
 	if verbose:
@@ -124,6 +126,11 @@ def device_exists(device):
 	except:
 		return os.path.exists(device)
 
+def read_input():
+	global cmdinput
+	while (1):
+		cmdinput = raw_input()
+
 # grab - main routine to grab a serial port and time the output of each line
 # takes a list of arguments, as they would have been passed in sys.argv
 # that is, a list of strings.
@@ -134,6 +141,12 @@ def device_exists(device):
 #    "-o","myoutputfile"
 def grab(arglist, outputfd=sys.stdout):
 	global verbose
+	global cmdinput
+
+	try:
+		thread.start_new_thread(read_input, ())
+	except:
+		print "Fail to start thread for read input\n"
 
 	# parse the command line options
 	try:
@@ -330,6 +343,10 @@ def grab(arglist, outputfd=sys.stdout):
 	# read from the serial port until something stops the program
 	while(1):
 		try:
+			if cmdinput:
+				sd.write(cmdinput + "\n")
+				cmdinput = ""
+
 			# read for up to 1 second
 			x = sd.read()
 
