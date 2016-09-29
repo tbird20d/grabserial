@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/python
 # vim: set ts=4 sw=4 noet :
 #
 # grabserial - program to read a serial port and send the data to stdout
@@ -144,11 +144,6 @@ def read_input():
 def grab(arglist, outputfd=sys.stdout):
 	global verbose
 	global cmdinput
-
-	try:
-		thread.start_new_thread(read_input, ())
-	except:
-		print "Fail to start thread for read input\n"
 
 	# parse the command line options
 	try:
@@ -342,6 +337,12 @@ def grab(arglist, outputfd=sys.stdout):
 		sd.write(command + "\n")
 		sd.flush()
 
+	# capture stdin to send to serial port
+	try:
+		thread.start_new_thread(read_input, ())
+	except:
+		print("Error starting thread for read input\n")
+
 	# read from the serial port until something stops the program
 	while(1):
 		try:
@@ -434,6 +435,8 @@ def grab(arglist, outputfd=sys.stdout):
 
 	if outputfile:
 		out.close()
+
+	sys.stdout.flush()
 
 if __name__=="__main__":
 	grab(sys.argv[1:])
