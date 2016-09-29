@@ -17,6 +17,8 @@
 #  * buffer output chars??
 #
 # CHANGELOG:
+#  2016.09.29 - Version 1.9.4 - add thread for sending user input to target
+#    by zqb-all on github
 #  2016.09.06 - clean up tabs, and add vim modeline for 4-column tabs
 #               grabserial should always run with python -tt grabserial
 #  2016.08.31 - add microsecond precision when using system Time (-T) option
@@ -49,7 +51,7 @@
 #  2008-06-02 - Version 1.1.0 add support for sending a command to
 #    the serial port before grabbing output
 
-VERSION=(1,9,3)
+VERSION=(1,9,4)
 
 import os, sys
 import getopt
