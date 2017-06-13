@@ -278,7 +278,7 @@ def grab(arglist, outputfd=sys.stdout):
 			basepat=arg
 		if opt in ["-i", "--instantpat"]:
 			instantpat=arg
-		if opt in ["-S", "--silent"]:
+		if opt in ["-q", "--quitpat"]:
 			quitpat=arg
 		if opt in ["-l", "--launchtime"]:
 			print('setting basetime to time of program launch')
