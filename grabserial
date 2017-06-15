@@ -385,6 +385,9 @@ def grab(arglist, outputfd=sys.stdout):
 			if endtime and time.time()>endtime:
 				if restart:
 					vprint("Restarting %s\n" % datetime.datetime.now().strftime("%H:%M:%S.%f"))
+					if outputfile:
+						out.close()
+					sd.close()
 					os.execv(sys.executable, ['python'] + sys.argv)
 				break
 
@@ -443,6 +446,9 @@ def grab(arglist, outputfd=sys.stdout):
 			if quitpat and re.search(quitpat, curline):
 				if restart:
 					vprint("Restarting %s\n" % datetime.datetime.now().strftime("%H:%M:%S.%f"))
+					if outputfile:
+						out.close()
+					sd.close()
 					os.execv(sys.executable, ['python'] + sys.argv)
 				break
 
