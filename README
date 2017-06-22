@@ -23,7 +23,7 @@ You can also install this as a python module with: 'python setup.py install'
 work for you.)
 
 == Example ==
-Log with timestamp (-T) from COM42 with 115200:8N1:xonxoff=0:rtscts=0 
-Without serial data on stdout (-Q), for 1 hour (-e) 
-to "2017-06-13T22-45-08" (-o "%") and then restart (-a) to create new log.
+Log with timestamp (-T) from COM42 with 115200:8N1:xonxoff=0:rtscts=0
+Without serial data on stdout (-Q), for 1 hour (-e)
+to "2017-06-13T22:45:08" (-o "%") and then restart (-a) to create new log.
 `grabserial -d COM42 -a -b 115200 -e 5 -Q -o "%" -T`

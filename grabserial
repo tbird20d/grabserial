@@ -96,7 +96,7 @@ options:
     -t, --time             Print time for each line received.  The time is
                            when the first character of each line is
                            received by %s
-    -a, --again            Restart application after -e expires or -q is triggered.                
+    -a, --again            Restart application after -e expires or -q is triggered.
     -T, --systime          Print system time for each line received. The time
                            is the absolute local time when the first character
                            of each line is received by %s
@@ -110,7 +110,7 @@ options:
                            program.  Works mid-line.
     -l, --launchtime       Set base time from launch of program.
     -o, --output=<name>    Output data to the named file.
-                           Uses: %Y-%m-%dT%H-%M-%S on "%".
+						   Uses: %%Y-%%m-%%dT%%H:%%M:%%S on "%%".
     -Q, --quiet            Silent on stdout, serial port data is only written to file.
     -v, --verbose          Show verbose runtime messages
     -V, --version          Show version number and exit
@@ -210,10 +210,10 @@ def grab(arglist, outputfd=sys.stdout):
 	outputfile = None
 	command = ""
 	skip_device_check = 0
-  cr_to_nl = 0
+	cr_to_nl = 0
 	restart = False
 	quiet = False
-  
+
 
 	for opt, arg in opts:
 		if opt in ["-h", "--help"]:
@@ -298,7 +298,7 @@ def grab(arglist, outputfd=sys.stdout):
 		if opt in ["-o", "--output"]:
 			outputfile = arg
 			if outputfile == "%":
-				outputfile = "%Y-%m-%dT%H-%M-%S"
+				outputfile = "%Y-%m-%dT%H:%M:%S"
 			if "%" in outputfile:
 				outputfile = datetime.datetime.now().strftime(outputfile)
 		if opt in ["-Q", "--quiet"]:
@@ -320,8 +320,8 @@ def grab(arglist, outputfd=sys.stdout):
 		vprint("%d:%d%s%s:xonxoff=%d:rtscts=%d" % (sd.baudrate, sd.bytesize,
 		sd.parity, sd.stopbits, sd.xonxoff, sd.rtscts))
 	else:
-		print("Shouldn't you at least specify where to read from?")
-		sys.exit(1)	
+		print("Error: Missing serial port to read from")
+		usage(2)
 	if endtime and not restart:
 		vprint("Program will end in %s seconds" % endstr)
 	if endtime and restart:
@@ -346,7 +346,7 @@ def grab(arglist, outputfd=sys.stdout):
 			sys.exit(1)
 		vprint("Saving data to '%s'" % outputfile)
         if quiet:
-		vprint("Keeping quiet on stdout")		
+		vprint("Keeping quiet on stdout")
 
 	prev1 = 0
 	linetime = 0
