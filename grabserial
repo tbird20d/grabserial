@@ -116,6 +116,7 @@ options:
     -V, --version          Show version number and exit
     -S, --skip             Skip sanity checking of the serial device.
                            May be needed for some devices.
+        --crtonewline      Promote a carriage return to be treated as a newline
 
 Ex: %s -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
@@ -179,7 +180,8 @@ def grab(arglist, outputfd=sys.stdout):
 				"verbose",
 				"version",
 				"quitpat=",
-				"skip"])
+				"skip",
+                                "crtonewline"])
 	except:
 		# print help info and exit
 		print("Error parsing command line options")
@@ -208,8 +210,10 @@ def grab(arglist, outputfd=sys.stdout):
 	outputfile = None
 	command = ""
 	skip_device_check = 0
+  cr_to_nl = 0
 	restart = False
 	quiet = False
+  
 
 	for opt, arg in opts:
 		if opt in ["-h", "--help"]:
@@ -307,6 +311,8 @@ def grab(arglist, outputfd=sys.stdout):
 			sys.exit(0)
 		if opt in ["-S"]:
 			skip_device_check=1
+	        if opt in ["--crtonewline"]:
+		        cr_to_nl=1
 
 	# if verbose, show what our settings are
 	if sd.port:
@@ -379,7 +385,7 @@ def grab(arglist, outputfd=sys.stdout):
 				cmdinput = ""
 
 			# read for up to 1 second
-			x = sd.read()
+			x = sd.read(1)
 
 			# see if we're supposed to stop yet
 			if endtime and time.time()>endtime:
@@ -395,9 +401,12 @@ def grab(arglist, outputfd=sys.stdout):
 			if len(x)==0:
 				continue
 
-			# ignore carriage returns
-			if x=="\r":
-				continue
+                        #convert carriage returns to newlines.
+                        if x=="\r":
+                                if cr_to_nl:
+                                        x = "\n"
+                                else:
+                                        continue
 
 			# set basetime to when first char is received
 			if not basetime:
@@ -482,3 +491,7 @@ def grab(arglist, outputfd=sys.stdout):
 
 if __name__=="__main__":
 	grab(sys.argv[1:])
+
+# emacs custom variables for using tabs
+# indent-tabs-mode: y
+# tab-width: 4
