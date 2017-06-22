@@ -15,8 +15,13 @@
 #
 # To do:
 #  * buffer output chars??
+#  * add optional value to -a to limit number of restarts?
+#  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2017.06.13 - Version 1.9.5 - add -a to restart after time expired or pattern matched.
+#                             - add strftime arguments to -o.
+#                             - add -Q to silence stdout when -o is active.
 #  2016.09.29 - Version 1.9.4 - add thread for sending user input to target
 #    by zqb-all on github
 #  2016.09.06 - clean up tabs, and add vim modeline for 4-column tabs
@@ -51,7 +56,7 @@
 #  2008-06-02 - Version 1.1.0 add support for sending a command to
 #    the serial port before grabbing output
 
-VERSION=(1,9,4)
+VERSION=(1,9,5)
 
 import os, sys
 import getopt
@@ -91,6 +96,7 @@ options:
     -t, --time             Print time for each line received.  The time is
                            when the first character of each line is
                            received by %s
+    -a, --again            Restart application after -e expires or -q is triggered.                
     -T, --systime          Print system time for each line received. The time
                            is the absolute local time when the first character
                            of each line is received by %s
@@ -104,6 +110,8 @@ options:
                            program.  Works mid-line.
     -l, --launchtime       Set base time from launch of program.
     -o, --output=<name>    Output data to the named file.
+                           Uses: %Y-%m-%dT%H-%M-%S on "%".
+    -Q, --quiet            Silent on stdout, serial port data is only written to file.
     -v, --verbose          Show verbose runtime messages
     -V, --version          Show version number and exit
     -S, --skip             Skip sanity checking of the serial device.
@@ -149,7 +157,7 @@ def grab(arglist, outputfd=sys.stdout):
 	# parse the command line options
 	try:
 		opts, args = getopt.getopt(arglist,
-                        "hli:d:b:B:w:p:s:xrfc:tTm:e:o:vVq:S", [
+						"hli:d:b:B:w:p:s:xrfc:taTm:e:o:QvVq:S", [
 				"help",
 				"launchtime",
 				"instantpat=",
@@ -163,10 +171,12 @@ def grab(arglist, outputfd=sys.stdout):
 				"force-reset",
 				"command=",
 				"time",
+				"again",
 				"systime",
 				"match=",
 				"endtime=",
 				"output=",
+				"quiet",
 				"verbose",
 				"version",
 				"quitpat=",
@@ -178,7 +188,7 @@ def grab(arglist, outputfd=sys.stdout):
 		usage(2)
 
 	sd = serial.Serial()
-	sd.port="/dev/ttyS0"
+	sd.port=""
 	sd.baudrate=115200
 	sd.bytesize=serial.EIGHTBITS
 	sd.parity=serial.PARITY_NONE
@@ -200,7 +210,10 @@ def grab(arglist, outputfd=sys.stdout):
 	outputfile = None
 	command = ""
 	skip_device_check = 0
-        cr_to_nl = 0;
+  cr_to_nl = 0
+	restart = False
+	quiet = False
+  
 
 	for opt, arg in opts:
 		if opt in ["-h", "--help"]:
@@ -260,6 +273,8 @@ def grab(arglist, outputfd=sys.stdout):
 		if opt in ["-t", "--time"]:
 			show_time=1
 			show_systime=0
+		if opt in ["-a", "--again"]:
+			restart = True
 		if opt in ["-T", "--systime"]:
 			show_time=0
 			show_systime=1
@@ -282,6 +297,12 @@ def grab(arglist, outputfd=sys.stdout):
 				sys.exit(3)
 		if opt in ["-o", "--output"]:
 			outputfile = arg
+			if outputfile == "%":
+				outputfile = "%Y-%m-%dT%H-%M-%S"
+			if "%" in outputfile:
+				outputfile = datetime.datetime.now().strftime(outputfile)
+		if opt in ["-Q", "--quiet"]:
+			quiet = True
 		if opt in ["-v", "--verbose"]:
 			verbose=1
 		if opt in ["-V", "--version"]:
@@ -294,11 +315,17 @@ def grab(arglist, outputfd=sys.stdout):
 		        cr_to_nl=1
 
 	# if verbose, show what our settings are
-	vprint("Opening serial port %s" % sd.port)
-	vprint("%d:%d%s%s:xonxoff=%d:rtscts=%d" % (sd.baudrate, sd.bytesize,
-		 sd.parity, sd.stopbits, sd.xonxoff, sd.rtscts))
-	if endtime:
+	if sd.port:
+		vprint("Opening serial port %s" % sd.port)
+		vprint("%d:%d%s%s:xonxoff=%d:rtscts=%d" % (sd.baudrate, sd.bytesize,
+		sd.parity, sd.stopbits, sd.xonxoff, sd.rtscts))
+	else:
+		print("Shouldn't you at least specify where to read from?")
+		sys.exit(1)	
+	if endtime and not restart:
 		vprint("Program will end in %s seconds" % endstr)
+	if endtime and restart:
+		vprint("Program will restart after %s seconds." % endstr)
 	if show_time:
 		vprint("Printing timing information for each line")
 	if show_systime:
@@ -318,6 +345,8 @@ def grab(arglist, outputfd=sys.stdout):
 			print("Can't open output file '%s'" % outputfile)
 			sys.exit(1)
 		vprint("Saving data to '%s'" % outputfile)
+        if quiet:
+		vprint("Keeping quiet on stdout")		
 
 	prev1 = 0
 	linetime = 0
@@ -360,6 +389,12 @@ def grab(arglist, outputfd=sys.stdout):
 
 			# see if we're supposed to stop yet
 			if endtime and time.time()>endtime:
+				if restart:
+					vprint("Restarting %s\n" % datetime.datetime.now().strftime("%H:%M:%S.%f"))
+					if outputfile:
+						out.close()
+					sd.close()
+					os.execv(sys.executable, ['python'] + sys.argv)
 				break
 
 			# if we didn't read anything, loop
@@ -382,8 +417,9 @@ def grab(arglist, outputfd=sys.stdout):
 				elapsed = linetime-basetime
 				delta = elapsed-prev1
 				msg ="[%4.6f %2.6f] " % (elapsed, delta)
-				if outputfd:
-					outputfd.write(msg)
+				if not quiet:
+					if outputfd:
+						outputfd.write(msg)
 				if outputfile:
 					out.write(msg)
 				prev1 = elapsed
@@ -395,14 +431,16 @@ def grab(arglist, outputfd=sys.stdout):
 				elapsed = linetime-basetime
 				delta = elapsed-prev1
 				msg = "[%s %2.6f] " % (linetimestr, delta)
-				sys.stdout.write(msg)
+				if not quiet:
+					sys.stdout.write(msg)
 				if outputfile:
 					out.write(msg)
 				prev1 = elapsed
 				newline = 0
 
 			# FIXTHIS - should I buffer the output here??
-			sys.stdout.write(x)
+			if not quiet:
+				sys.stdout.write(x)
 			if outputfile:
 				out.write(x)
 			curline += x
@@ -415,6 +453,12 @@ def grab(arglist, outputfd=sys.stdout):
 
 			# Exit the loop if quitpat matches
 			if quitpat and re.search(quitpat, curline):
+				if restart:
+					vprint("Restarting %s\n" % datetime.datetime.now().strftime("%H:%M:%S.%f"))
+					if outputfile:
+						out.close()
+					sd.close()
+					os.execv(sys.executable, ['python'] + sys.argv)
 				break
 
 			if x=="\n":
@@ -435,16 +479,15 @@ def grab(arglist, outputfd=sys.stdout):
 		instanttime_str = '%4.6f' % (instanttime-basetime)
 		msg = '\nThe instantpat: "%s" was matched at %s\n' % \
 			(instantpat, instanttime_str)
-		sys.stdout.write(msg)
-		sys.stdout.flush()
+		if not quiet:
+			sys.stdout.write(msg)
+			sys.stdout.flush()
 		if outputfile:
 			out.write(msg)
 			out.flush()
 
 	if outputfile:
 		out.close()
-
-	sys.stdout.flush()
 
 if __name__=="__main__":
 	grab(sys.argv[1:])
