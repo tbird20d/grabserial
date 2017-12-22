@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # vim: set ts=4 sw=4 noet :
 #
 # grabserial - program to read a serial port and send the data to stdout
@@ -64,7 +64,16 @@ import serial
 import time
 import datetime
 import re
-import thread
+
+try:
+	import thread
+except ImportError:
+	import _thread as thread
+
+if sys.version_info > (3, 0):
+	# raw input is gone in python3
+	# https://www.python.org/dev/peps/pep-3111/
+	raw_input = input
 
 verbose = 0
 cmdinput = ""
@@ -181,7 +190,7 @@ def grab(arglist, outputfd=sys.stdout):
 				"version",
 				"quitpat=",
 				"skip",
-                                "crtonewline"])
+				"crtonewline"])
 	except:
 		# print help info and exit
 		print("Error parsing command line options")
@@ -311,8 +320,8 @@ def grab(arglist, outputfd=sys.stdout):
 			sys.exit(0)
 		if opt in ["-S"]:
 			skip_device_check=1
-	        if opt in ["--crtonewline"]:
-		        cr_to_nl=1
+		if opt in ["--crtonewline"]:
+			cr_to_nl=1
 
 	# if verbose, show what our settings are
 	if sd.port:
@@ -345,7 +354,7 @@ def grab(arglist, outputfd=sys.stdout):
 			print("Can't open output file '%s'" % outputfile)
 			sys.exit(1)
 		vprint("Saving data to '%s'" % outputfile)
-        if quiet:
+	if quiet:
 		vprint("Keeping quiet on stdout")
 
 	prev1 = 0
@@ -401,12 +410,12 @@ def grab(arglist, outputfd=sys.stdout):
 			if len(x)==0:
 				continue
 
-                        #convert carriage returns to newlines.
-                        if x=="\r":
-                                if cr_to_nl:
-                                        x = "\n"
-                                else:
-                                        continue
+			#convert carriage returns to newlines.
+			if x==b"\r":
+					if cr_to_nl:
+							x = b"\n"
+					else:
+							continue
 
 			# set basetime to when first char is received
 			if not basetime:
@@ -421,7 +430,7 @@ def grab(arglist, outputfd=sys.stdout):
 					if outputfd:
 						outputfd.write(msg)
 				if outputfile:
-					out.write(msg)
+					out.write(msg.encode())
 				prev1 = elapsed
 				newline = 0
 
@@ -434,16 +443,16 @@ def grab(arglist, outputfd=sys.stdout):
 				if not quiet:
 					sys.stdout.write(msg)
 				if outputfile:
-					out.write(msg)
+					out.write(msg.encode())
 				prev1 = elapsed
 				newline = 0
 
 			# FIXTHIS - should I buffer the output here??
 			if not quiet:
-				sys.stdout.write(x)
+				sys.stdout.write(x.decode())
 			if outputfile:
 				out.write(x)
-			curline += x
+			curline += x.decode()
 
 			# watch for patterns
 			if instantpat and not instanttime and \
@@ -461,7 +470,7 @@ def grab(arglist, outputfd=sys.stdout):
 					os.execv(sys.executable, ['python'] + sys.argv)
 				break
 
-			if x=="\n":
+			if x==b"\n":
 				newline = 1
 				if basepat and re.match(basepat, curline):
 					basetime = linetime
