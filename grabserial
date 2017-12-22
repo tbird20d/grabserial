@@ -64,7 +64,16 @@ import serial
 import time
 import datetime
 import re
-import thread
+
+try:
+	import thread
+except ImportError:
+	import _thread as thread
+
+if sys.version_info > (3, 0):
+	# raw input is gone in python3
+	# https://www.python.org/dev/peps/pep-3111/
+	raw_input = input
 
 verbose = 0
 cmdinput = ""
