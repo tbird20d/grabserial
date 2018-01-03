@@ -13,7 +13,7 @@ if [ -n "$1" ] ; then
     fi
     if [ "$1" = "-f" ] ; then
         echo "Running flake8 to analyze grabserial source"
-        flake8 --ignore W191 grabserial
+        flake8 --count grabserial
         exit $?
     fi
     if [ "$1" = "-l" ] ; then
