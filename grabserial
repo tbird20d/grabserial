@@ -14,6 +14,9 @@
 # 2006-09-07 by Tim Bird
 #
 # To do:
+#  * support interrupting capture with Ctrl-C
+#    * somewhere along the line, this feature got lost
+#    * (maybe check the exception handler and threading in the main loop?)
 #  * buffer output chars??
 #  * add optional value to -a to limit number of restarts?
 #  * restart based on received bytes?
@@ -154,7 +157,7 @@ def device_exists(device):
                 return True
 
         return False
-    except:
+    except serial.SerialException:
         return os.path.exists(device)
 
 
@@ -206,7 +209,7 @@ def grab(arglist, outputfd=sys.stdout):
                             "skip",
                             "crtonewline",
                         ])
-    except:
+    except getopt.GetoptError:
         # print help info and exit
         print("Error parsing command line options")
         usage(2)
@@ -315,7 +318,7 @@ def grab(arglist, outputfd=sys.stdout):
             endstr = arg
             try:
                 endtime = time.time()+float(endstr)
-            except:
+            except ValueError:
                 print("Error: invalid endtime %s specified" % arg)
                 sd.close()
                 sys.exit(3)
@@ -401,7 +404,7 @@ def grab(arglist, outputfd=sys.stdout):
     # capture stdin to send to serial port
     try:
         thread.start_new_thread(read_input, ())
-    except:
+    except thread.error:
         print("Error starting thread for read input\n")
 
     # read from the serial port until something stops the program
@@ -502,7 +505,8 @@ def grab(arglist, outputfd=sys.stdout):
             sys.stdout.flush()
             if outputfile:
                 out.flush()
-        except:
+        # FIXTHIS - maybe add 'except KeyboardInterrupt' here
+        except EnvironmentError:
             break
 
     sd.close()
