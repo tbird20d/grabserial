@@ -83,21 +83,23 @@ if sys.version_info > (3, 0):
 verbose = 0
 cmdinput = ""
 
+
 def vprint(message):
     if verbose:
         print(message)
+
 
 def usage(rcode):
     cmd = "grabserial"
 
     print("""%s : Serial line reader
-    Usage: %s [options] <config_file>
+    Usage: %s [options]
 options:
     -h, --help             Print this message
     -d, --device=<devpath> Set the device to read (default '/dev/ttyS0')
     -b, --baudrate=<val>   Set the baudrate (default 115200)
     -B <val>               Force the baudrate to the indicated value
-                             (grabserial won't check that the baudrate is legal)
+                             (grabserial won't check if the baudrate is legal)
     -w, --width=<val>      Set the data bit width (default 8)
     -p, --parity=<val>     Set the parity (default N)
     -s, --stopbits=<val>   Set the stopbits (default 1)
@@ -110,7 +112,8 @@ options:
     -t, --time             Print time for each line received.  The time is
                            when the first character of each line is
                            received by %s
-    -a, --again            Restart application after -e expires or -q is triggered.
+    -a, --again            Restart application after -e expires or -q is
+                           triggered.
     -T, --systime          Print system time for each line received. The time
                            is the absolute local time when the first character
                            of each line is received by %s
@@ -118,19 +121,21 @@ options:
                            set a base time.  Time values for lines after the
                            line matching the pattern will be relative to
                            this base time.
-    -i, --instantpat=<pat> Specify a regular expression pattern to have its time
-                           reported at end of run.  Works mid-line.
+    -i, --instantpat=<pat> Specify a regular expression pattern to have its
+                           time reported at end of run.  It works mid-line.
     -q, --quitpat=<pat>    Specify a regular expression pattern to end the
-                           program.  Works mid-line.
+                           program.  It works mid-line.
     -l, --launchtime       Set base time from launch of program.
     -o, --output=<name>    Output data to the named file.
                            Uses: %%Y-%%m-%%dT%%H:%%M:%%S on "%%".
-    -Q, --quiet            Silent on stdout, serial port data is only written to file.
+    -Q, --quiet            Silent on stdout, serial port data is only written
+                           to file, if specified.
     -v, --verbose          Show verbose runtime messages
     -V, --version          Show version number and exit
     -S, --skip             Skip sanity checking of the serial device.
                            May be needed for some devices.
-        --crtonewline      Promote a carriage return to be treated as a newline
+        --crtonewline      Promote a carriage return to be treated as a
+                           newline
 
 Ex: %s -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
@@ -138,6 +143,7 @@ each line, and re-setting the base time when the line starting with
 "Linux version" is seen.
 """ % (cmd, cmd, cmd, cmd, cmd))
     sys.exit(rcode)
+
 
 def device_exists(device):
     try:
@@ -151,10 +157,12 @@ def device_exists(device):
     except:
         return os.path.exists(device)
 
+
 def read_input():
     global cmdinput
     while (1):
         cmdinput = raw_input()
+
 
 # grab - main routine to grab a serial port and time the output of each line
 # takes a list of arguments, as they would have been passed in sys.argv
@@ -170,48 +178,50 @@ def grab(arglist, outputfd=sys.stdout):
 
     # parse the command line options
     try:
-        opts, args = getopt.getopt(arglist,
+        opts, args = getopt.getopt(
+                        arglist,
                         "hli:d:b:B:w:p:s:xrfc:taTm:e:o:QvVq:S", [
-                "help",
-                "launchtime",
-                "instantpat=",
-                "device=",
-                "baudrate=",
-                "width=",
-                "parity=",
-                "stopbits=",
-                "xonxoff",
-                "rtscts",
-                "force-reset",
-                "command=",
-                "time",
-                "again",
-                "systime",
-                "match=",
-                "endtime=",
-                "output=",
-                "quiet",
-                "verbose",
-                "version",
-                "quitpat=",
-                "skip",
-                "crtonewline"])
+                            "help",
+                            "launchtime",
+                            "instantpat=",
+                            "device=",
+                            "baudrate=",
+                            "width=",
+                            "parity=",
+                            "stopbits=",
+                            "xonxoff",
+                            "rtscts",
+                            "force-reset",
+                            "command=",
+                            "time",
+                            "again",
+                            "systime",
+                            "match=",
+                            "endtime=",
+                            "output=",
+                            "quiet",
+                            "verbose",
+                            "version",
+                            "quitpat=",
+                            "skip",
+                            "crtonewline",
+                        ])
     except:
         # print help info and exit
         print("Error parsing command line options")
         usage(2)
 
     sd = serial.Serial()
-    sd.port=""
-    sd.baudrate=115200
-    sd.bytesize=serial.EIGHTBITS
-    sd.parity=serial.PARITY_NONE
-    sd.stopbits=serial.STOPBITS_ONE
-    sd.xonxoff=False
-    sd.rtscts=False
-    sd.dsrdtr=False
+    sd.port = ""
+    sd.baudrate = 115200
+    sd.bytesize = serial.EIGHTBITS
+    sd.parity = serial.PARITY_NONE
+    sd.stopbits = serial.STOPBITS_ONE
+    sd.xonxoff = False
+    sd.rtscts = False
+    sd.dsrdtr = False
     # specify a read timeout of 1 second
-    sd.timeout=1
+    sd.timeout = 1
     force = False
     show_time = 0
     show_systime = 0
@@ -228,16 +238,16 @@ def grab(arglist, outputfd=sys.stdout):
     restart = False
     quiet = False
 
-
     for opt, arg in opts:
         if opt in ["-h", "--help"]:
             usage(0)
         if opt in ["-d", "--device"]:
             device = arg
             if not skip_device_check and not device_exists(device):
-                print("Error: serial device '%s' does not exist, aborting." % device)
-                print("  If you think this port really exists, then try using the -S option")
-                print("  to skip the serial device check. (put it before the -d argument)")
+                print("""Error: serial device '%s' does not exist, aborting.
+    If you think this port really exists, then try using the -S option
+    to skip the serial device check. (put it before the -d argument)"""
+                      % device)
                 sd.close()
                 usage(2)
             sd.port = device
@@ -285,24 +295,24 @@ def grab(arglist, outputfd=sys.stdout):
         if opt in ["-f", "--force-set"]:
             force = True
         if opt in ["-t", "--time"]:
-            show_time=1
-            show_systime=0
+            show_time = 1
+            show_systime = 0
         if opt in ["-a", "--again"]:
             restart = True
         if opt in ["-T", "--systime"]:
-            show_time=0
-            show_systime=1
+            show_time = 0
+            show_systime = 1
         if opt in ["-m", "--match"]:
-            basepat=arg
+            basepat = arg
         if opt in ["-i", "--instantpat"]:
-            instantpat=arg
+            instantpat = arg
         if opt in ["-q", "--quitpat"]:
-            quitpat=arg
+            quitpat = arg
         if opt in ["-l", "--launchtime"]:
             print('setting basetime to time of program launch')
             basetime = time.time()
         if opt in ["-e", "--endtime"]:
-            endstr=arg
+            endstr = arg
             try:
                 endtime = time.time()+float(endstr)
             except:
@@ -318,21 +328,23 @@ def grab(arglist, outputfd=sys.stdout):
         if opt in ["-Q", "--quiet"]:
             quiet = True
         if opt in ["-v", "--verbose"]:
-            verbose=1
+            verbose = 1
         if opt in ["-V", "--version"]:
             print("grabserial version %d.%d.%d" % VERSION)
             sd.close()
             sys.exit(0)
         if opt in ["-S"]:
-            skip_device_check=1
+            skip_device_check = 1
         if opt in ["--crtonewline"]:
-            cr_to_nl=1
+            cr_to_nl = 1
 
     # if verbose, show what our settings are
     if sd.port:
         vprint("Opening serial port %s" % sd.port)
-        vprint("%d:%d%s%s:xonxoff=%d:rtscts=%d" % (sd.baudrate, sd.bytesize,
-        sd.parity, sd.stopbits, sd.xonxoff, sd.rtscts))
+        vprint(
+            "%d:%d%s%s:xonxoff=%d:rtscts=%d" %
+            (sd.baudrate, sd.bytesize, sd.parity, sd.stopbits,
+                sd.xonxoff, sd.rtscts))
     else:
         print("Error: Missing serial port to read from")
         usage(2)
@@ -368,10 +380,11 @@ def grab(arglist, outputfd=sys.stdout):
     curline = ""
     vprint("Use Control-C to stop...")
 
-    if force:
     # pyserial does not reconfigure the device if the settings
     # don't change from the previous ones.  This causes issues
     # with (at least) some USB serial converters
+    # Allow user to force device reconfiguration
+    if force:
         toggle = sd.xonxoff
         sd.xonxoff = not toggle
         sd.open()
@@ -402,9 +415,11 @@ def grab(arglist, outputfd=sys.stdout):
             x = sd.read(1)
 
             # see if we're supposed to stop yet
-            if endtime and time.time()>endtime:
+            if endtime and time.time() > endtime:
                 if restart:
-                    vprint("Restarting %s\n" % datetime.datetime.now().strftime("%H:%M:%S.%f"))
+                    vprint(
+                        "Restarting %s\n" %
+                        datetime.datetime.now().strftime("%H:%M:%S.%f"))
                     if outputfile:
                         out.close()
                     sd.close()
@@ -412,15 +427,15 @@ def grab(arglist, outputfd=sys.stdout):
                 break
 
             # if we didn't read anything, loop
-            if len(x)==0:
+            if len(x) == 0:
                 continue
 
-            #convert carriage returns to newlines.
-            if x=="\r":
-                    if cr_to_nl:
-                            x = "\n"
-                    else:
-                            continue
+            # convert carriage returns to newlines.
+            if x == "\r":
+                if cr_to_nl:
+                    x = "\n"
+                else:
+                    continue
 
             # set basetime to when first char is received
             if not basetime:
@@ -430,7 +445,7 @@ def grab(arglist, outputfd=sys.stdout):
                 linetime = time.time()
                 elapsed = linetime-basetime
                 delta = elapsed-prev1
-                msg ="[%4.6f %2.6f] " % (elapsed, delta)
+                msg = "[%4.6f %2.6f] " % (elapsed, delta)
                 if not quiet:
                     if outputfd:
                         outputfd.write(msg)
@@ -461,21 +476,23 @@ def grab(arglist, outputfd=sys.stdout):
 
             # watch for patterns
             if instantpat and not instanttime and \
-                 re.search(instantpat, curline):
-            #   instantpat in curline:
+                    re.search(instantpat, curline):
+                # instantpat is in curline:
                 instanttime = time.time()
 
             # Exit the loop if quitpat matches
             if quitpat and re.search(quitpat, curline):
                 if restart:
-                    vprint("Restarting %s\n" % datetime.datetime.now().strftime("%H:%M:%S.%f"))
+                    vprint(
+                        "Restarting %s\n" %
+                        datetime.datetime.now().strftime("%H:%M:%S.%f"))
                     if outputfile:
                         out.close()
                     sd.close()
                     os.execv(sys.executable, ['python'] + sys.argv)
                 break
 
-            if x=="\n":
+            if x == "\n":
                 newline = 1
                 if basepat and re.match(basepat, curline):
                     basetime = linetime
@@ -503,7 +520,8 @@ def grab(arglist, outputfd=sys.stdout):
     if outputfile:
         out.close()
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     grab(sys.argv[1:])
 
 # emacs custom variables for using tabs
