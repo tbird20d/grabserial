@@ -1,16 +1,53 @@
 #!/bin/sh
+#
+# For pylint-related info, see:
+#    https://jeffknupp.com/blog/2016/12/09/how-python-linters-will-save-your-large-python-project/
 
-# Here's a test:
-# grab data from /dev/ttyACM1 (-d /dev/ttyACM1)
-# end either in 30 seconds (-e 30) or when "done" is seen (-q "done")
+if [ -n "$1" ] ; then
+    if [ "$1" = "-h" ] ; then
+        echo "Usage: test.sh [options]"
+        echo " -h  Show this usage help"
+        echo " -f  Do 'flake8' test of grabserial syntax"
+        echo " -l  Do 'pylint' test of grabserial source"
+        exit 0
+    fi
+    if [ "$1" = "-f" ] ; then
+        echo "Running flake8 to analyze grabserial source"
+        flake8 --ignore W191 grabserial
+        exit $?
+    fi
+    if [ "$1" = "-l" ] ; then
+        echo "Running pylint to analyze grabserial source"
+        pylint grabserial
+        exit $?
+    fi
+fi
+
+if [ -n "$1" ] ; then
+    echo "Unrecognized option '$1'"
+    echo "Use -h for help"
+    exit 0
+fi
+
+echo "Running grabserial on target 'bbb'"
+# Here's a runtime test:
+
+# get the console device for target 'bbb'
+console_dev="$(ttc info bbb -n console_dev)"
+
+
+# grab data from from that console device (-d ${console_dev},
+#    skipping the serial port sanity check (-S)
+# end either in 30 seconds (-e 30) or when "login" is seen (-q "login")
 # report the time when "done" was seen (-i "done")
 # send data to graboutput.log (-o graboutput.log)
 # reset the running timer when the string "Starting kernel" is seen (-m ...)
 # show verbose messages (-v)
 
-# use ttc to reboot my beaglebone black
+# Also, use ttc to reboot bbb
 
-./grabserial  -v -d /dev/ttyACM1 -e 30 -t -m "Starting kernel" -i "done," -q "done" -o graboutput.log & ttc reboot bbb
+# use ttc to reboot my beaglebone black
+./grabserial  -v -S -d ${console_dev} -e 30 -t -m "Starting kernel" -i "done," -q "login" -o graboutput.log & ttc reboot bbb
 
 echo "Sleeping in test.sh"
 sleep 31
