@@ -163,7 +163,7 @@ def device_exists(device):
 
 def read_input():
     global cmdinput
-    while (1):
+    while 1:
         cmdinput = raw_input()
 
 
@@ -408,7 +408,7 @@ def grab(arglist, outputfd=sys.stdout):
         print("Error starting thread for read input\n")
 
     # read from the serial port until something stops the program
-    while(1):
+    while 1:
         try:
             if cmdinput:
                 sd.write(cmdinput + "\n")
