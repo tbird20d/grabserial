@@ -18,7 +18,9 @@ if [ -n "$1" ] ; then
     fi
     if [ "$1" = "-l" ] ; then
         echo "Running pylint to analyze grabserial source"
-        pylint grabserial
+        # C0325 is unnecessary-parens (in python 2.0, parens for prints
+        # is encouraged to make them forward-compatible with python 3.0
+        pylint --disable=C0325 grabserial
         exit $?
     fi
 fi
