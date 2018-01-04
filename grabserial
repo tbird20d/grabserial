@@ -22,9 +22,10 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
-#  2018.01.03 -
-#  2018.01.03 - add patches from Ilya Kuzmich to fix python3 issues,
-#               update test.sh with python linters and other improvements
+#  2018.01.03 - Version 1.9.6
+#   - add patches from Ilya Kuzmich to fix python3 issues,
+#   - update test.sh with python linters and other improvements
+#   - fix code to remove flake8 and pylint issues
 #  2017.06.13 - Version 1.9.5 - add -a to restart after time expired or
 #                               pattern matched.
 #                             - add strftime arguments to -o.
@@ -71,7 +72,7 @@ import time
 import datetime
 import re
 
-VERSION = (1, 9, 5)
+VERSION = (1, 9, 6)
 
 try:
     import thread
