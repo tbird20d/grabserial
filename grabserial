@@ -416,7 +416,7 @@ def grab(arglist, outputfd=sys.stdout):
                 cmdinput = ""
 
             # read for up to 1 second
-            x = sd.read(1)
+            x = sd.read(1).decode(sys.stdout.encoding)
 
             # see if we're supposed to stop yet
             if endtime and time.time() > endtime:
