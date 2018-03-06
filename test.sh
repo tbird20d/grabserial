@@ -49,7 +49,11 @@ console_dev="$(ttc info bbb -n console_dev)"
 # Also, use ttc to reboot bbb
 
 # use ttc to reboot my beaglebone black
+echo "Testing with python 2"
 ./grabserial  -v -S -d ${console_dev} -e 30 -t -m "Starting kernel" -i "done," -q "login" -o graboutput.log & ttc reboot bbb
+
+echo "Testing with ptyhon 3"
+python3 ./grabserial  -v -S -d ${console_dev} -e 30 -t -m "Starting kernel" -i "done," -q "login" -o graboutput.log & ttc reboot bbb
 
 echo "Sleeping in test.sh"
 sleep 31
