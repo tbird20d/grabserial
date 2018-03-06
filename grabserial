@@ -370,7 +370,7 @@ def grab(arglist, outputfd=sys.stdout):
         vprint("Skipping check of serial device")
     if outputfile:
         try:
-            out = open(outputfile, "wb")
+            out = open(outputfile, "w")
         except IOError:
             print("Can't open output file '%s'" % outputfile)
             sys.exit(1)
