@@ -23,11 +23,18 @@ You can also install this as a python module with: 'python setup.py install'
 (Some users have reported problems with this - let me know if it doesn't
 work for you.)
 
-Example
--------
+Examples
+--------
 
-    $ `grabserial -d COM42 -a -b 115200 -e 5 -Q -o "%" -T`
+    $ `grabserial -d /dev/ttyUSB0 -e 30 -t -m "^Linux version.*"`
 
-Log with timestamp (-T) from COM42 with 115200:8N1:xonxoff=0:rtscts=0
-Without serial data on stdout (-Q), for 1 hour (-e)
-to "2017-06-13T22:45:08" (-o "%") and then restart (-a) to create new log.
+Grab serial input for 30 seconds (-e 30), displaying the time for each
+line (-t), and re-setting the base time when the line starting with
+"Linux version" is seen.
+
+    $ `grabserial -d COM42 -T -b 115200 -e 3600 -Q -o "%" -a`
+
+Log serial data from COM4, with system timestamp (-T)
+with settings 115200:8N1:xonxoff=0:rtscts=0 (-b 115200)
+to the output file "2017-06-13T22:45:08" (-o "%"), for 1 hour (-e 3600)
+and then restart (-a) to create new log.
