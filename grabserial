@@ -399,7 +399,7 @@ def grab(arglist, outputfd=sys.stdout):
     sd.flushOutput()
 
     if command:
-        sd.write(command + "\n")
+        sd.write((command + "\n").encode())
         sd.flush()
 
     # capture stdin to send to serial port
@@ -412,7 +412,7 @@ def grab(arglist, outputfd=sys.stdout):
     while 1:
         try:
             if cmdinput:
-                sd.write(cmdinput + "\n")
+                sd.write((cmdinput + "\n").encode())
                 cmdinput = ""
 
             # read for up to 1 second
