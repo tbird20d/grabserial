@@ -502,10 +502,30 @@ def grab(arglist, outputfd=sys.stdout):
             # FIXTHIS - should I buffer the output here??
             if not quiet:
                 # x is a bytestr
-                outputfd.write(x.decode("utf8"))
+                outputfd.write(x.decode("utf8", "ignore"))
+                # You sometimes get an error here if the serial port gives
+                # you garbage data.  This can happen, for instance, when
+                # the uart changes line speed during bootup.
+                #
+                # NOTE: I chose 'ignore' for decoding errors
+                # because I believe the most common use case is
+                # a user watching stdout from grabserial in a terminal
+                # window.  You don't want to emit weird characters
+                # in that case.  However, this will end up losing
+                # characters that can't be decoded.  Another option
+                # is 'replace', with its own set of issues.
+                #
+                # Note that the exact data from the serial port is
+                # preserved in an output file (specified with the -o
+                # parameter), so you can use that to diagnose weird
+                # uart problems, if needed.
             if out:
+                # save bytestring data exactly as received from serial port
+                # (ie there is no 'decode' here)
                 out.write(x)
-            curline += x.decode("utf8")
+
+            # curline is in unicode
+            curline += x.decode("utf8", "ignore")
 
             # watch for patterns
             if instantpat and not instanttime and \
