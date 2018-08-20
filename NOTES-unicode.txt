@@ -10,7 +10,7 @@ Lots of this info comes from 2 resources:
 
  * https://www.joelonsoftware.com/2003/10/08/the-absolute-minimum-every-software-developer-absolutely-positively-must-know-about-unicode-and-character-sets-no-excuses/ - by Joel Spolsky
 
-= facts = 
+= facts =
  * unicode must be converted to bytes for storage or transmittal
  * when dealing with bytes (something you got from somewhere) you have
    to know the encoding
@@ -24,7 +24,7 @@ grabserial assumes that:
    * this means arguments to grabserial are utf-8
  * user input typed into grabserial (to its stdin) on Linux are utf-8
    * but we use sys.stdin.encoding to get it right
- * user input typed into grabserial (to its stdin) has unknown encoding
+ * user input typed into grabserial (to its stdin) on Windows has unknown encoding
    * but we use sys.stdin.encoding to get it right
  * bytes coming from a Linux serial port are utf-8 (for the most part)
    but could be anything
@@ -33,18 +33,32 @@ grabserial assumes that:
      encoding of sys.stdout (this is usually utf8 in Linux)
      (on my Windows 7 system, this is cp437)
      for output to it's own stdout
- * if the user specifies and output file, it is openend "bw" to preserve
-    the exact data that was received from the serial port
+   * errors are ignored - this ends up truncating weird chars from the
+   serial port, when they are sent to stdout.
+ * if the user specifies an output file, it is openend "bw", and the
+    bytes from the serial port are never decoded or encoded, in order
+    to preserve the exact data that was received from the serial port
 
 = info about python unicode handling =
 encode is used to convert unicode into a byte string
  * must specify encoding
  * will get errors if unicode can't be put into requested encoding
+   * can specify how to handle errors, with following strings as
+   second argument:
+     * ignore - don't output anything for the char
+     * replace - replace with ?
+     * xmlcharrefreplace - replace with XML/HTML-compatible character
+       * it is up to the browser to do something sensible with these
+     * backslashreplace - replace with backslashed escape sequences
+
  * default encoding in python2 is ascii, which can't handle most unicode
 
 decode is used to convert a byte string into unicode code points
  * must specify encoding
  * will get errors if the byte string has invalid characters based on stated encoding
+   * can specify how to handle errors:
+     * ignore - don't output anything for the char
+     * replace - replace with U+FFFD
 
 = python 2 =
 strings are by default byte strings (type 'str')
@@ -52,7 +66,7 @@ unicode strings can be declared with 'u' prefix
 allows the use of 'b' prefix to declare byte strings
 
 will automatically convert bytes strings to unicode, using
-  an ascii encoding, when python system feels like it 
+  an ascii encoding, when python system feels like it
 
 this may raise exceptions that can be hard to understand
 
