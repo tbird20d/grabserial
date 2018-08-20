@@ -32,38 +32,51 @@ if [ -n "$1" ] ; then
 fi
 
 echo "Running grabserial on target 'bbb'"
-# Here's a runtime test:
 
 # get the console device for target 'bbb'
 console_dev="$(ttc info bbb -n console_dev)"
 
 
-# grab data from from that console device (-d ${console_dev},
-#    skipping the serial port sanity check (-S)
-# end either in 30 seconds (-e 30) or when "login" is seen (-q "login")
-# report the time when "done" was seen (-i "done")
-# send data to graboutput.log (-o graboutput.log)
-# reset the running timer when the string "Starting kernel" is seen (-m ...)
-# show verbose messages (-v)
-
 # Also, use ttc to reboot bbb
 
 # use ttc to reboot my beaglebone black
 echo "Testing with python 2"
-./grabserial  -v -S -d ${console_dev} -e 30 -t -m "Starting kernel" -i "done," -q "login" -o graboutput.log & ttc reboot bbb
+echo "  60 second grab, stopping when 'login' is seen"
 
-echo "Testing with ptyhon 3"
-python3 ./grabserial  -v -S -d ${console_dev} -e 30 -t -m "Starting kernel" -i "done," -q "login" -o graboutput.log & ttc reboot bbb
+# do the reboot after grabserial is started
+(sleep 1 ; ttc reboot bbb) &
 
-echo "Sleeping in test.sh"
-sleep 31
+# grab data from from that console device (-d ${console_dev},
+#    skipping the serial port sanity check (-S)
+# end either in 60 seconds (-e 60) or when "login" is seen (-q "login")
+# report the time when "FAQ" was seen (-i "FAQ")
+# send data to graboutput.log (-o graboutput.log)
+# reset the running timer when the string "Starting kernel" is seen (-m ...)
+# show verbose messages (-v)
+./grabserial  -v -S -d ${console_dev} -e 60 -t -m "Starting kernel" -i "FAQ" -q "login" -o graboutput.log
 
-# Note: this calling sequence give an error:
-#   Unhandled exception in thread started by <function read_input at 0x7fb745dc5e60>
-#   Traceback (most recent call last):
-#   File "./grabserial", line 143, in read_input
-#      cmdinput = raw_input()
-#   EOFError: EOF when reading a line
-# It has something to do with stdin closing.  I don't get the error if
-# I run grabserial from the command line.
+echo
 
+echo "  120 second grab, try logging in (test user input to serial port)"
+(sleep 1 ; ttc reboot bbb) &
+
+# run for two minutes, allowing user to login (using threaded input)
+./grabserial  -v -S -d ${console_dev} -e 120 -t -o graboutput2.log
+
+echo 
+
+echo "Testing with python 3"
+echo "  60 second grab, stopping when 'login' is seen"
+(sleep 1 ; ttc reboot bbb) &
+
+python3 ./grabserial  -v -S -d ${console_dev} -e 60 -t -m "Starting kernel" -i "FAQ" -q "login" -o graboutput3.log
+
+echo
+
+echo "  120 second grab, try logging in (test user input to serial port)"
+(sleep 1 ; ttc reboot bbb) &
+python3 ./grabserial  -v -S -d ${console_dev} -e 120 -t -o graboutput4.log
+
+echo 
+
+echo "Done in test.sh"
