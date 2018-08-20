@@ -4,14 +4,14 @@
 #
 # grabserial - program to read a serial port and send the data to stdout
 #
-# Copyright 2006,2016 Sony Corporation
+# Copyright 2006,2018 Sony Corporation
 #
 # This program is provided under the Gnu General Public License (GPL)
 # version 2 ONLY. This program is distributed WITHOUT ANY WARRANTY.
 # See the LICENSE file, which should have accompanied this program,
 # for the text of the license.
 #
-# 2018-01-03 by Tim Bird <tim.bird@sony.com>
+# 2018-08-20 by Tim Bird <tim.bird@sony.com>
 # 2006-09-07 by Tim Bird
 #
 # To do:
@@ -23,6 +23,10 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2018.08.20 - Version 1.9.8
+#   - try to fix unicode handling (yet again)
+#     - some work based on pull request submitted by 'modbw' on github
+#   - handle EOFError during read_input, in case of pipe closure
 #  2018.01.03 - Version 1.9.6
 #   - add patches from Ilya Kuzmich to fix python3 issues,
 #   - update test.sh with python linters and other improvements
@@ -73,7 +77,7 @@ import time
 import datetime
 import re
 
-VERSION = (1, 9, 6)
+VERSION = (1, 9, 8)
 
 try:
     import thread
