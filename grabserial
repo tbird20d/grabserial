@@ -388,7 +388,7 @@ def grab(arglist, outputfd=sys.stdout):
     if basepat:
         vprint("Matching pattern '%s' to set base time" % basepat)
     if instantpat:
-        vprint("Instant pattern '%s' to set base time" % instantpat)
+        vprint("Instant pattern '%s' to report time of at end of run" % instantpat)
     if quitpat:
         vprint("Instant pattern '%s' to exit program" % quitpat)
     if skip_device_check:
