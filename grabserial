@@ -378,9 +378,9 @@ def grab(arglist, outputfd=sys.stdout):
         print("Error: Missing serial port to read from")
         usage(2)
     if endtime and not restart:
-        vprint("Program will end in %s seconds" % endstr)
+        vprint("Program set to end in %s seconds" % endstr)
     if endtime and restart:
-        vprint("Program will restart after %s seconds." % endstr)
+        vprint("Program set to restart after %s seconds." % endstr)
     if show_time:
         vprint("Printing timing information for each line")
     if show_systime:
@@ -435,6 +435,7 @@ def grab(arglist, outputfd=sys.stdout):
     except thread.error:
         print("Error starting thread for read input\n")
 
+    stop_reason = "grabserial stopped for an unknown reason"
     # read from the serial port until something stops the program
     while 1:
         try:
@@ -456,6 +457,7 @@ def grab(arglist, outputfd=sys.stdout):
                         out.close()
                     sd.close()
                     os.execv(sys.executable, ['python'] + sys.argv)
+                stop_reason = "grabserial stopped due to time expiration"
                 break
 
             # if we didn't read anything, loop
@@ -543,6 +545,7 @@ def grab(arglist, outputfd=sys.stdout):
                         out.close()
                     sd.close()
                     os.execv(sys.executable, ['python'] + sys.argv)
+                stop_reason = "grabserial stopped because quit pattern '%s' was found" % quitpat
                 break
 
             if x == b"\n":
@@ -557,6 +560,10 @@ def grab(arglist, outputfd=sys.stdout):
                 out.flush()
         # FIXTHIS - maybe add 'except KeyboardInterrupt' here
         except EnvironmentError:
+            stop_reason = "grabserial stopped due to some external error"
+            break
+        except KeyboardInterrupt:
+            stop_reason = "grabserial stopped due to keyboard interrupt"
             break
 
     sd.close()
@@ -573,6 +580,8 @@ def grab(arglist, outputfd=sys.stdout):
 
     if out:
         out.close()
+
+    vprint(stop_reason)
 
 
 if __name__ == "__main__":
