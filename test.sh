@@ -63,7 +63,7 @@ echo "  120 second grab, try logging in (test user input to serial port)"
 # run for two minutes, allowing user to login (using threaded input)
 ./grabserial  -v -S -d ${console_dev} -e 120 -t -o graboutput2.log
 
-echo 
+echo
 
 echo "Testing with python 3"
 echo "  60 second grab, stopping when 'login' is seen"
@@ -77,6 +77,6 @@ echo "  120 second grab, try logging in (test user input to serial port)"
 (sleep 1 ; ttc reboot bbb) &
 python3 ./grabserial  -v -S -d ${console_dev} -e 120 -t -o graboutput4.log
 
-echo 
+echo
 
 echo "Done in test.sh"
