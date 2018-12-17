@@ -484,7 +484,14 @@ def grab(arglist, outputfd=sys.stdout):
                     if outputfd:
                         outputfd.write(msg)
                 if out:
-                    out.write(msg.encode(sys.stdout.encoding))
+                    try:
+                        out.write(msg.encode(sys.stdout.encoding))
+                    except:
+                        try:
+                            out.write(msg.encode("utf8"))
+                        except:
+                            out.write(msg)
+
                 prev1 = elapsed
                 newline = 0
 
@@ -497,7 +504,14 @@ def grab(arglist, outputfd=sys.stdout):
                 if not quiet:
                     outputfd.write(msg)
                 if out:
-                    out.write(msg.encode(sys.stdout.encoding))
+                    try:
+                        out.write(msg.encode(sys.stdout.encoding))
+                    except:
+                        try:
+                            out.write(msg.encode("utf8"))
+                        except:
+                            out.write(msg)
+
                 prev1 = elapsed
                 newline = 0
 
@@ -575,7 +589,13 @@ def grab(arglist, outputfd=sys.stdout):
             outputfd.write(msg)
             outputfd.flush()
         if out:
-            out.write(msg.encode(sys.stdout.encoding))
+            try:
+                out.write(msg.encode(sys.stdout.encoding))
+            except:
+                try:
+                    out.write(msg.encode("utf8"))
+                except:
+                    out.write(msg)
             out.flush()
 
     if out:
