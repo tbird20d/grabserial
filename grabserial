@@ -118,11 +118,12 @@ options:
                            received by %s
     -a, --again            Restart application after -e expires or -q is
                            triggered.
-    -T [format], --systime Print system time for each line received. The time
+    -T, --systime          Print system time for each line received. The time
                            is the absolute local time when the first character
-                           of each line is received by %s it's format could be
-                           specified only using short version of flag, e.g.
-                           -T \"%%Y-%%m-%%d %%H:%%M%%S.%%f\"
+                           of each line is received by %s
+    -F, --timeformat=<val> Specifies system time format for each received line
+                           e.g.
+                           -F \"%%Y-%%m-%%d %%H:%%M%%S.%%f\"
                            (default \"%%H:%%M:%%S.%%f\")
     -m, --match=<pat>      Specify a regular expression pattern to match to
                            set a base time.  Time values for lines after the
@@ -212,7 +213,7 @@ def grab(arglist, outputfd=sys.stdout):
     try:
         opts, args = getopt.getopt(
                         arglist,
-                        "hli:d:b:B:w:p:s:xrfc:taT:m:e:o:QvVq:nS", [
+                        "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:QvVq:nS", [
                             "help",
                             "launchtime",
                             "instantpat=",
@@ -228,6 +229,7 @@ def grab(arglist, outputfd=sys.stdout):
                             "time",
                             "again",
                             "systime",
+                            "timeformat=",
                             "match=",
                             "endtime=",
                             "output=",
@@ -336,10 +338,10 @@ def grab(arglist, outputfd=sys.stdout):
         if opt in ["-a", "--again"]:
             restart = True
         if opt in ["-T", "--systime"]:
-            if arg:
-                systime_format = arg
             show_time = 0
             show_systime = 1
+        if opt in ["-F", "--timeformat"]:
+            systime_format = arg
         if opt in ["-m", "--match"]:
             basepat = arg
         if opt in ["-i", "--instantpat"]:
