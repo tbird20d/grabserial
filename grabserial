@@ -11,7 +11,7 @@
 # See the LICENSE file, which should have accompanied this program,
 # for the text of the license.
 #
-# 2018-08-20 by Tim Bird <tim.bird@sony.com>
+# 2019-09-03 by Tim Bird <tim.bird@sony.com>
 # 2006-09-07 by Tim Bird
 #
 # To do:
@@ -23,6 +23,10 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2019.09.03 - Version 1.9.9
+#   - fixed a bunch of pylint errors, and disabled some false positives
+#    with inline pylint directives
+#     - this included replacing some bare exceptions with UnicodeEncodeError
 #  2018.08.20 - Version 1.9.8
 #   - try to fix unicode handling (yet again)
 #     - some work based on pull request submitted by 'modbw' on github
@@ -77,15 +81,16 @@ import time
 import datetime
 import re
 
-VERSION = (1, 9, 8)
-
 try:
     import thread
 except ImportError:
     import _thread as thread
 
-verbose = 0
-cmdinput = u""
+VERSION = (1, 9, 9)
+
+
+verbose = 0         # pylint: disable=I0011,C0103
+cmdinput = u""      # pylint: disable=I0011,C0103
 
 
 def vprint(message):
@@ -163,7 +168,7 @@ def device_exists(device):
 
 
 def read_input():
-    global cmdinput
+    global cmdinput     # pylint: disable=I0011,C0103
 
     # NOTE: cmdinput is in unicode (to make handling similar between
     # python2 and python3)
@@ -183,7 +188,7 @@ def read_input():
             # https://www.python.org/dev/peps/pep-3111/
             # input() returns string in unicode already
             try:
-                cmdinput = input()
+                cmdinput = input()      # pylint: disable=I0011,W0141
             except EOFError:
                 break
 
@@ -201,39 +206,39 @@ def read_input():
 # would only make sense if you specified another out_filename with
 #    "-o","myoutputfilename"
 def grab(arglist, outputfd=sys.stdout):
-    global verbose
-    global cmdinput
+    global verbose      # pylint: disable=I0011,C0103
+    global cmdinput     # pylint: disable=I0011,C0103
 
     # parse the command line options
     try:
         opts, args = getopt.getopt(
-                        arglist,
-                        "hli:d:b:B:w:p:s:xrfc:taTm:e:o:QvVq:S", [
-                            "help",
-                            "launchtime",
-                            "instantpat=",
-                            "device=",
-                            "baudrate=",
-                            "width=",
-                            "parity=",
-                            "stopbits=",
-                            "xonxoff",
-                            "rtscts",
-                            "force-reset",
-                            "command=",
-                            "time",
-                            "again",
-                            "systime",
-                            "match=",
-                            "endtime=",
-                            "output=",
-                            "quiet",
-                            "verbose",
-                            "version",
-                            "quitpat=",
-                            "skip",
-                            "crtonewline",
-                        ])
+            arglist,
+            "hli:d:b:B:w:p:s:xrfc:taTm:e:o:QvVq:S", [
+                "help",
+                "launchtime",
+                "instantpat=",
+                "device=",
+                "baudrate=",
+                "width=",
+                "parity=",
+                "stopbits=",
+                "xonxoff",
+                "rtscts",
+                "force-reset",
+                "command=",
+                "time",
+                "again",
+                "systime",
+                "match=",
+                "endtime=",
+                "output=",
+                "quiet",
+                "verbose",
+                "version",
+                "quitpat=",
+                "skip",
+                "crtonewline",
+            ])
     except getopt.GetoptError:
         # print help info and exit
         print("Error parsing command line options")
@@ -373,7 +378,7 @@ def grab(arglist, outputfd=sys.stdout):
         vprint(
             "%d:%d%s%s:xonxoff=%d:rtscts=%d" %
             (sd.baudrate, sd.bytesize, sd.parity, sd.stopbits,
-                sd.xonxoff, sd.rtscts))
+             sd.xonxoff, sd.rtscts))
     else:
         print("Error: Missing serial port to read from")
         usage(2)
@@ -388,7 +393,8 @@ def grab(arglist, outputfd=sys.stdout):
     if basepat:
         vprint("Matching pattern '%s' to set base time" % basepat)
     if instantpat:
-        vprint("Instant pattern '%s' to report time of at end of run" % instantpat)
+        vprint("Instant pattern '%s' to report time of at end of run"
+               % instantpat)
     if quitpat:
         vprint("Instant pattern '%s' to exit program" % quitpat)
     if skip_device_check:
@@ -486,10 +492,10 @@ def grab(arglist, outputfd=sys.stdout):
                 if out:
                     try:
                         out.write(msg.encode(sys.stdout.encoding))
-                    except:
+                    except UnicodeEncodeError:
                         try:
                             out.write(msg.encode("utf8"))
-                        except:
+                        except UnicodeEncodeError:
                             out.write(msg)
 
                 prev1 = elapsed
@@ -506,10 +512,10 @@ def grab(arglist, outputfd=sys.stdout):
                 if out:
                     try:
                         out.write(msg.encode(sys.stdout.encoding))
-                    except:
+                    except UnicodeEncodeError:
                         try:
                             out.write(msg.encode("utf8"))
-                        except:
+                        except UnicodeEncodeError:
                             out.write(msg)
 
                 prev1 = elapsed
@@ -559,7 +565,8 @@ def grab(arglist, outputfd=sys.stdout):
                         out.close()
                     sd.close()
                     os.execv(sys.executable, ['python'] + sys.argv)
-                stop_reason = "grabserial stopped because quit pattern '%s' was found" % quitpat
+                stop_reason = "grabserial stopped because quit pattern '" + \
+                    quitpat + "' was found"
                 break
 
             if x == b"\n":
@@ -591,10 +598,10 @@ def grab(arglist, outputfd=sys.stdout):
         if out:
             try:
                 out.write(msg.encode(sys.stdout.encoding))
-            except:
+            except UnicodeEncodeError:
                 try:
                     out.write(msg.encode("utf8"))
-                except:
+                except UnicodeEncodeError:
                     out.write(msg)
             out.flush()
 
