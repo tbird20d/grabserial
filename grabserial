@@ -126,6 +126,10 @@ options:
     -T, --systime          Print system time for each line received. The time
                            is the absolute local time when the first character
                            of each line is received by %s
+    -F, --timeformat=<val> Specifies system time format for each received line
+                           e.g.
+                           -F \"%%Y-%%m-%%d %%H:%%M%%S.%%f\"
+                           (default \"%%H:%%M:%%S.%%f\")
     -m, --match=<pat>      Specify a regular expression pattern to match to
                            set a base time.  Time values for lines after the
                            line matching the pattern will be relative to
@@ -143,6 +147,7 @@ options:
     -V, --version          Show version number and exit
     -S, --skip             Skip sanity checking of the serial device.
                            May be needed for some devices.
+    -n, --nodelta          Skip printing delta between read lines.
         --crtonewline      Promote a carriage return to be treated as a
                            newline
 
@@ -213,7 +218,7 @@ def grab(arglist, outputfd=sys.stdout):
     try:
         opts, args = getopt.getopt(
             arglist,
-            "hli:d:b:B:w:p:s:xrfc:taTm:e:o:QvVq:S", [
+            "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:QvVq:S", [
                 "help",
                 "launchtime",
                 "instantpat=",
@@ -229,6 +234,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "time",
                 "again",
                 "systime",
+                "timeformat=",
                 "match=",
                 "endtime=",
                 "output=",
@@ -271,6 +277,8 @@ def grab(arglist, outputfd=sys.stdout):
     cr_to_nl = 0
     restart = False
     quiet = False
+    systime_format = "%H:%M:%S.%f"
+    use_delta = True
 
     for opt, arg in opts:
         if opt in ["-h", "--help"]:
@@ -336,6 +344,8 @@ def grab(arglist, outputfd=sys.stdout):
         if opt in ["-T", "--systime"]:
             show_time = 0
             show_systime = 1
+        if opt in ["-F", "--timeformat"]:
+            systime_format = arg
         if opt in ["-m", "--match"]:
             basepat = arg
         if opt in ["-i", "--instantpat"]:
@@ -367,8 +377,10 @@ def grab(arglist, outputfd=sys.stdout):
             print("grabserial version %d.%d.%d" % VERSION)
             sd.close()
             sys.exit(0)
-        if opt in ["-S"]:
+        if opt in ["-S", "--skip"]:
             skip_device_check = 1
+        if opt in ["-n", "--nodelta"]:
+            use_delta = False
         if opt in ["--crtonewline"]:
             cr_to_nl = 1
 
@@ -503,10 +515,13 @@ def grab(arglist, outputfd=sys.stdout):
 
             if show_systime and newline:
                 linetime = time.time()
-                linetimestr = datetime.datetime.now().strftime("%H:%M:%S.%f")
+                linetimestr = datetime.datetime.now().strftime(systime_format)
                 elapsed = linetime-basetime
-                delta = elapsed-prev1
-                msg = "[%s %2.6f] " % (linetimestr, delta)
+                if use_delta:
+                    delta = elapsed-prev1
+                    msg = "[%s %2.6f] " % (linetimestr, delta)
+                else:
+                    msg = "[%s] " % (linetimestr)
                 if not quiet:
                     outputfd.write(msg)
                 if out:
