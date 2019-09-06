@@ -284,6 +284,7 @@ def grab(arglist, outputfd=sys.stdout):
     quiet = False
     systime_format = "%H:%M:%S.%f"
     use_delta = True
+    out_filenamehasdate = 0
 
     for opt, arg in opts:
         if opt in ["-h", "--help"]:
@@ -372,6 +373,9 @@ def grab(arglist, outputfd=sys.stdout):
             out_filename = arg
             if out_filename == "%":
                 out_filename = "%Y-%m-%dT%H:%M:%S"
+            if "%d" in out_filename:
+                out_pattern = out_filename
+                out_filenamehasdate = 1
             if "%" in out_filename:
                 out_filename = datetime.datetime.now().strftime(out_filename)
         if opt in ["-A", "--append"]:
@@ -424,6 +428,8 @@ def grab(arglist, outputfd=sys.stdout):
             # open in binary mode, to pass through data as unmodified
             # as possible
             out = open(out_filename, out_permissions)
+            if out_filenamehasdate:
+                out_opendate = datetime.date.today()
         except IOError:
             print("Can't open output file '%s'" % out_filename)
             sys.exit(1)
@@ -503,6 +509,24 @@ def grab(arglist, outputfd=sys.stdout):
             # set basetime to when first char is received
             if not basetime:
                 basetime = time.time()
+
+            # if outputting data to a file with a date in its name and the
+            # date has changed, then close it and open a new file.
+            if (out_filename
+                    and out_filenamehasdate
+                    and newline
+                    and datetime.date.today() > out_opendate
+                    and not endtime):
+                vprint("Closing output file: '%s'\n" % out_filename)
+                out.close()
+                out_filename = datetime.datetime.now().strftime(out_pattern)
+                vprint("Opening new output file: '%s'\n" % out_filename)
+                try:
+                    out = open(out_filename, out_permissions)
+                    out_opendate = datetime.date.today()
+                except IOError:
+                    print("Can't open output file '%s'" % out_filename)
+                    sys.exit(1)
 
             if show_time and newline:
                 linetime = time.time()
