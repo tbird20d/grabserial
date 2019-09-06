@@ -373,9 +373,8 @@ def grab(arglist, outputfd=sys.stdout):
             out_filename = arg
             if out_filename == "%":
                 out_filename = "%Y-%m-%dT%H:%M:%S"
-                out_filenamehasdate = 1
             if "%d" in out_filename:
-                out_pattern = arg
+                out_pattern = out_filename
                 out_filenamehasdate = 1
             if "%" in out_filename:
                 out_filename = datetime.datetime.now().strftime(out_filename)
