@@ -141,6 +141,8 @@ options:
     -l, --launchtime       Set base time from launch of program.
     -o, --output=<name>    Output data to the named file.
                            Uses: %%Y-%%m-%%dT%%H:%%M:%%S on "%%".
+    -A, --append           Append (rather than overwrite) output data to the
+                           file specifed with -o option
     -Q, --quiet            Silent on stdout, serial port data is only written
                            to file, if specified.
     -v, --verbose          Show verbose runtime messages
@@ -218,7 +220,7 @@ def grab(arglist, outputfd=sys.stdout):
     try:
         opts, args = getopt.getopt(
             arglist,
-            "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:QvVq:S", [
+            "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:AQvVq:S", [
                 "help",
                 "launchtime",
                 "instantpat=",
@@ -238,6 +240,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "match=",
                 "endtime=",
                 "output=",
+                "append",
                 "quiet",
                 "verbose",
                 "version",
@@ -272,6 +275,8 @@ def grab(arglist, outputfd=sys.stdout):
     endtime = 0
     out_filename = None
     out = None
+    out_permissions = "wb"
+    append = False
     command = ""
     skip_device_check = 0
     cr_to_nl = 0
@@ -369,6 +374,9 @@ def grab(arglist, outputfd=sys.stdout):
                 out_filename = "%Y-%m-%dT%H:%M:%S"
             if "%" in out_filename:
                 out_filename = datetime.datetime.now().strftime(out_filename)
+        if opt in ["-A", "--append"]:
+            out_permissions = "a+b"
+            append = True
         if opt in ["-Q", "--quiet"]:
             quiet = True
         if opt in ["-v", "--verbose"]:
@@ -415,11 +423,14 @@ def grab(arglist, outputfd=sys.stdout):
         try:
             # open in binary mode, to pass through data as unmodified
             # as possible
-            out = open(out_filename, "wb")
+            out = open(out_filename, out_permissions)
         except IOError:
             print("Can't open output file '%s'" % out_filename)
             sys.exit(1)
-        vprint("Saving data to '%s'" % out_filename)
+        if append:
+            vprint("Appending data to '%s'" % out_filename)
+        else:
+            vprint("Saving data to '%s'" % out_filename)
     if quiet:
         vprint("Keeping quiet on stdout")
 
