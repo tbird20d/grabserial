@@ -4,11 +4,11 @@
 
 ### Logging sensor data continuously (running grabserial as a service)
 
-Having built a small sensor based on an Arduino Nano, a DS18B20 temperature sensor and a relay to control, I wanted a way to capture the data that I was logging to the serial interface in order to analyze and graph it.  I used a Raspberry Pi Zero W running Rasbian (Stretch) for this purpose.  The examples below however were done on a laptop running Ubuntu 18.04 LTS to ensure that the process could be duplicated with this guide.
+Having built a small sensor based on an Arduino Nano, a DS18B20 temperature sensor and a relay to control, I wanted a way to capture the data that I was logging to the serial interface to analyze and graph it.  I used a Raspberry Pi Zero W running Rasbian (Stretch) for this purpose.  The examples below however were done on a laptop running Ubuntu 18.04 LTS to ensure that the process could be duplicated with this guide.
 
 Both of these systems use [systemd](https://en.wikipedia.org/wiki/Systemd) for process initialization.
 
-We're going to need to setup a couple of things before we can setup grabserial to run as a service.
+We're going to need to set up a couple of things before we can configure grabserial to run as a service.
 
  * Create a system user id (and group) for the service to run as
  * Create a folder to write the log files into
@@ -16,12 +16,12 @@ We're going to need to setup a couple of things before we can setup grabserial t
 
 ### Create System User
 
-We are going to create a system account with no home directory and no login capability.
+We are going to create a system account and group named grabserial with no home directory and no login capability.
 
 ```
 sudo adduser --system --no-create-home --disabled-login --group grabserial
 ```
-Since the system user will be opening the serial port, we need to add it to the group that the device belongs to.  On my system that was the dialout group.  You can confirm on your system by checking the group associated with your device.
+Since the system user will be opening the serial port, we need to add it to the group that the device belongs to.  On my system that was the 'dialout' group.  You can confirm on your system by checking the group associated with your device.
 
 ```
 $ ls -l /dev/ttyUSB0
@@ -32,6 +32,16 @@ Here we add the system user to the dialout group.
 ```
 sudo usermod --append --groups dialout grabserial
 ```
+
+#### Side Note - pyserial module should be installed globally
+Since we are using a system user to run grabserial, we need to ensure that the pyserial module is installed globally and is accessible to the script.  Run either or both of the command lines below if you're unsure.
+
+```
+sudo -H pip install pyserial
+# or
+sudo -H pip3 install pyserial
+```
+
 
 ### Create Folder for Log Files
 
@@ -44,7 +54,12 @@ sudo chown grabserial:grabserial /var/grabserial
 
 This will create the folder and then change the ownership of the folder to be the system user (and group) that we created earlier.
 
-The last thing we need to do is to determine the systemd unit for the serial device we will be listening to.  For a USB device, you'll want to do this step with the device attached so that it is loaded and active.  Simply take the output from systemctl and grep for your device.
+```
+$ ls -ld /var/grabserial
+drwxr-xr-x 2 grabserial grabserial 4096 Sep  9 00:03 /var/grabserial
+```
+
+The last thing we need to do is determine the systemd unit for the serial device we will be listening to.  For a USB device, you'll want to do this step with the device attached so that it is loaded and active.  Simply take the output from systemctl and grep for your device.
 
 ```
 $ sudo systemctl | grep ttyUSB0 |  awk '{print $1}'
@@ -133,4 +148,8 @@ Sep 09 08:51:12 myhostname GrabSerial[11475]: Appending data to '/var/grabserial
 Sep 09 08:51:12 myhostname GrabSerial[11475]: Keeping quiet on stdout
 Sep 09 08:51:12 myhostname GrabSerial[11475]: Use Control-C to stop...
 ```
+### Summary
+
+We now have grabserial running as a service.  It will start on system boot-up if and when the device is present.  It will stop the service if the device is removed.
+
 ---
