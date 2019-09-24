@@ -128,7 +128,7 @@ options:
                            of each line is received by %s
     -F, --timeformat=<val> Specifies system time format for each received line
                            e.g.
-                           -F \"%%Y-%%m-%%d %%H:%%M%%S.%%f\"
+                           -F \"%%Y-%%m-%%d %%H:%%M:%%S.%%f\"
                            (default \"%%H:%%M:%%S.%%f\")
     -m, --match=<pat>      Specify a regular expression pattern to match to
                            set a base time.  Time values for lines after the
