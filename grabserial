@@ -220,7 +220,7 @@ def grab(arglist, outputfd=sys.stdout):
     try:
         opts, args = getopt.getopt(
             arglist,
-            "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:AQvVq:S", [
+            "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:AQvVq:nS", [
                 "help",
                 "launchtime",
                 "instantpat=",
