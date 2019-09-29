@@ -149,6 +149,9 @@ options:
     -V, --version          Show version number and exit
     -S, --skip             Skip sanity checking of the serial device.
                            May be needed for some devices.
+                           This option is required if you want grabserial to
+                           continue running and attemp re-connections after
+                           the serial device has been disconnected.
     -n, --nodelta          Skip printing delta between read lines.
         --crtonewline      Promote a carriage return to be treated as a
                            newline
@@ -444,23 +447,29 @@ def grab(arglist, outputfd=sys.stdout):
     curline = ""
     vprint("Use Control-C to stop...")
 
-    # pyserial does not reconfigure the device if the settings
-    # don't change from the previous ones.  This causes issues
-    # with (at least) some USB serial converters
-    # Allow user to force device reconfiguration
-    if force:
-        toggle = sd.xonxoff
-        sd.xonxoff = not toggle
-        sd.open()
-        sd.close()
-        sd.xonxoff = toggle
-    sd.open()
-    sd.flushInput()
-    sd.flushOutput()
+    try:
+        # pyserial does not reconfigure the device if the settings
+        # don't change from the previous ones.  This causes issues
+        # with (at least) some USB serial converters
+        # Allow user to force device reconfiguration
+        if force:
+            toggle = sd.xonxoff
+            sd.xonxoff = not toggle
+            sd.open()
+            sd.close()
+            sd.xonxoff = toggle
 
-    if command:
-        sd.write((command + u"\n").encode("utf8"))
-        sd.flush()
+        sd.open()
+        sd.flushInput()
+        sd.flushOutput()
+
+        if command:
+            sd.write((command + u"\n").encode("utf8"))
+            sd.flush()
+    except serial.serialutil.SerialException:
+        # This is the exception which is raised when you unplug the USB UART.
+        # Applies to both python 2 and 3 on Linux
+        stop_reason = "grabserial stopped due to a SerialException"
 
     # capture stdin to send to serial port
     try:
@@ -594,6 +603,23 @@ def grab(arglist, outputfd=sys.stdout):
             if out:
                 out.flush()
         # FIXTHIS - maybe add 'except KeyboardInterrupt' here
+        except serial.serialutil.SerialException:
+            # This is the exception which is raised when you unplug the USB
+            # UART.  Applies to both python 2 and 3 on Linux
+
+            stop_reason = "grabserial stopped due to a SerialException"
+
+            # We might get a Ctrl+C while we are sleeping, so catch that
+            try:
+                # Wait a second so we don't use excessive CPU to spin in a loop
+                # when the serial device is disconnected.
+                time.sleep(1)
+            except KeyboardInterrupt:
+                stop_reason = "grabserial stopped due to keyboard interrupt"
+
+                # An actual error, don't restart.
+                restart = False
+            break
         except EnvironmentError:
             stop_reason = "grabserial stopped due to some external error"
 
