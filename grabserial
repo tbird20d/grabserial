@@ -416,8 +416,10 @@ def grab(arglist, outputfd=sys.stdout):
     if instantpat:
         vprint("Instant pattern '%s' to report time of at end of run"
                % instantpat)
-    if quitpat:
+    if quitpat and not restart:
         vprint("Instant pattern '%s' to exit program" % quitpat)
+    if quitpat and restart:
+        vprint("Instant pattern '%s' to restart program" % quitpat)
     if skip_device_check:
         vprint("Skipping check of serial device")
     if out_filename:
