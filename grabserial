@@ -642,9 +642,6 @@ if __name__ == "__main__":
             vprint(
                 "Restarting %s\n" %
                 datetime.datetime.now().strftime("%H:%M:%S.%f"))
-
-            # Actually restart
-            os.execv(sys.executable, ['python'] + sys.argv)
         else:
             break
 
