@@ -468,7 +468,7 @@ def grab(arglist, outputfd=sys.stdout):
             sd.flush()
     except serial.serialutil.SerialException:
         # This is the exception which is raised when you unplug the USB UART.
-        # Applies to both python 2 and 3 on Linux
+        # Applies to both python 2 and 3 on Linux and Windows.
         stop_reason = "grabserial stopped due to a SerialException"
 
     # capture stdin to send to serial port
@@ -605,7 +605,7 @@ def grab(arglist, outputfd=sys.stdout):
         # FIXTHIS - maybe add 'except KeyboardInterrupt' here
         except serial.serialutil.SerialException:
             # This is the exception which is raised when you unplug the USB
-            # UART.  Applies to both python 2 and 3 on Linux
+            # UART.  Applies to both python 2 and 3 on Linux and Windows.
 
             stop_reason = "grabserial stopped due to a SerialException"
 
