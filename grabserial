@@ -212,6 +212,7 @@ def read_input():
 # you can specify your own (already open) file descriptor, or None.  This
 # would only make sense if you specified another out_filename with
 #    "-o","myoutputfilename"
+# Return value: True if we should 'restart' the program
 def grab(arglist, outputfd=sys.stdout):
     global verbose      # pylint: disable=I0011,C0103
     global cmdinput     # pylint: disable=I0011,C0103
@@ -481,14 +482,6 @@ def grab(arglist, outputfd=sys.stdout):
 
             # see if we're supposed to stop yet
             if endtime and time.time() > endtime:
-                if restart:
-                    vprint(
-                        "Restarting %s\n" %
-                        datetime.datetime.now().strftime("%H:%M:%S.%f"))
-                    if out:
-                        out.close()
-                    sd.close()
-                    os.execv(sys.executable, ['python'] + sys.argv)
                 stop_reason = "grabserial stopped due to time expiration"
                 break
 
@@ -586,14 +579,6 @@ def grab(arglist, outputfd=sys.stdout):
 
             # Exit the loop if quitpat matches
             if quitpat and re.search(quitpat, curline):
-                if restart:
-                    vprint(
-                        "Restarting %s\n" %
-                        datetime.datetime.now().strftime("%H:%M:%S.%f"))
-                    if out:
-                        out.close()
-                    sd.close()
-                    os.execv(sys.executable, ['python'] + sys.argv)
                 stop_reason = "grabserial stopped because quit pattern '" + \
                     quitpat + "' was found"
                 break
@@ -611,9 +596,16 @@ def grab(arglist, outputfd=sys.stdout):
         # FIXTHIS - maybe add 'except KeyboardInterrupt' here
         except EnvironmentError:
             stop_reason = "grabserial stopped due to some external error"
+
+            # An actual error.  We don't want to restart the program in this
+            # case, so this function will return false.
+            restart = False
             break
         except KeyboardInterrupt:
             stop_reason = "grabserial stopped due to keyboard interrupt"
+
+            # An actual error, don't restart.
+            restart = False
             break
 
     sd.close()
@@ -639,9 +631,22 @@ def grab(arglist, outputfd=sys.stdout):
 
     vprint(stop_reason)
 
+    return restart
 
 if __name__ == "__main__":
-    grab(sys.argv[1:])
+    while True:
+        restart = grab(sys.argv[1:])
+
+        # Return value is true if we should 'restart' the program
+        if restart:
+            vprint(
+                "Restarting %s\n" %
+                datetime.datetime.now().strftime("%H:%M:%S.%f"))
+
+            # Actually restart
+            os.execv(sys.executable, ['python'] + sys.argv)
+        else:
+            break
 
 # emacs custom variables for using tabs
 # indent-tabs-mode: nil
