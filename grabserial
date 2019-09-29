@@ -245,6 +245,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "verbose",
                 "version",
                 "quitpat=",
+                "nodelta",
                 "skip",
                 "crtonewline",
             ])
