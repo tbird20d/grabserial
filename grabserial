@@ -121,8 +121,8 @@ options:
     -t, --time             Print time for each line received.  The time is
                            when the first character of each line is
                            received by %s
-    -a, --again            Restart application after -e expires or -q is
-                           triggered.
+    -a, --again            Restart application after -e expires, -q is
+                           triggered, or the serial device is disconnected.
     -T, --systime          Print system time for each line received. The time
                            is the absolute local time when the first character
                            of each line is received by %s
