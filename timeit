@@ -1,0 +1,546 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# vim: set ts=4 sw=4 et :
+#
+# timeit - program to read a stdin and send the data to stdout with timing data
+#
+# Copyright 2019 Sony Corporation
+#
+# This program is provided under the Gnu General Public License (GPL)
+# version 2 ONLY. This program is distributed WITHOUT ANY WARRANTY.
+# See the LICENSE file, which should have accompanied this program,
+# for the text of the license.
+#
+# 2019-10-18 by Tim Bird <tim.bird@sony.com>
+#
+# Some examples:
+# $ ssh -vvv user@host 2>&1 | timeit -l
+#   show the time for each debug output line from ssh, starting from launch time
+#
+#
+# To do:
+#  - validate 'device' mode (open a character device and time that)
+#  - add 'command' mode (launch a command and time that)
+#    - review need for stderr flag
+#
+# Bugs:
+# - cr's are getting lost in stdin mode for interactive sessions
+#   - that is: ssh host | timeit   results in no carriage returns during
+#     shell interaction on the target
+#
+# CHANGELOG:
+#  2019.10.17 - Version 0.9.0
+#   - copy initial code from grabserial
+#   - remove serial stuff and adjust for stdin processing
+
+import os
+import sys
+import getopt
+import time
+import datetime
+import re
+
+try:
+    import thread
+except ImportError:
+    import _thread as thread
+
+VERSION = (0, 9, 0)
+
+cmd = "timeit"
+
+verbose = 0         # pylint: disable=I0011,C0103
+cmdinput = u""      # pylint: disable=I0011,C0103
+
+
+def vprint(message):
+    if verbose:
+        print(message)
+
+
+def usage(rcode):
+    print("""%s : line-oriented timing program
+    Usage: %s [options]
+options:
+    -h, --help             Print this message
+    -d, --device=<devpath> Specify a device to read, instead of a command
+    -e, --endtime=<secs>   End the program after the specified seconds have
+                           elapsed.
+    -c, --command=<cmd>    Execute a command to time
+    -s, --string=<str>     Send a string to the command before reading
+    -a, --again            Restart application after -e expires, -q is triggered.
+    -T, --systime          Print system time for each line received. The time
+                           is the absolute local time when the first character
+                           of each line is received by %s
+    -F, --timeformat=<val> Specifies system time format for each received line
+                           e.g.
+                           -F \"%%Y-%%m-%%d %%H:%%M:%%S.%%f\"
+                           (default is \"%%H:%%M:%%S.%%f\")
+    -m, --match=<pat>      Specify a regular expression pattern to match to
+                           set a base time.  Time values for lines after the
+                           line matching the pattern will be relative to
+                           this base time.
+    -i, --instantpat=<pat> Specify a regular expression pattern to have its
+                           time reported at end of run.  It works mid-line.
+    -q, --quitpat=<pat>    Specify a regular expression pattern to end the
+                           program.  It works mid-line.
+    -l, --launchtime       Set base time from launch of program.
+    -o, --output=<name>    Output data to the named file.
+                           Uses: %%Y-%%m-%%dT%%H:%%M:%%S on "%%".
+    -A, --append           Append (rather than overwrite) output data to the
+                           file specifed with -o option
+    -Q, --quiet            Silent on stdout, serial port data is only written
+                           to file, if specified.
+    -v, --verbose          Show verbose runtime messages
+    -V, --version          Show version number and exit
+    -n, --nodelta          Skip printing delta between read lines.
+        --crtonewline      Promote a carriage return to be treated as a
+        --stderr           Time stderr instead of stdout
+""" % (cmd, cmd, cmd))
+    sys.exit(rcode)
+
+
+def check_device(device):
+    return os.path.exists(device)
+
+def read_input():
+    global cmdinput     # pylint: disable=I0011,C0103
+
+    # NOTE: cmdinput is in unicode (to make handling similar between
+    # python2 and python3)
+
+    while 1:
+        if sys.version_info < (3, 0):
+            try:
+                # raw_input in python 2.x returns byte string
+                # decode to unicode
+                cmdinput = raw_input().decode(sys.stdin.encoding)
+            except EOFError:
+                # if we're piping input, we want to stop trying to read
+                # it when the pipe closes, or the file ends
+                break
+        else:
+            # raw_input is gone in python3
+            # https://www.python.org/dev/peps/pep-3111/
+            # input() returns string in unicode already
+            try:
+                cmdinput = input()      # pylint: disable=I0011,W0141
+            except EOFError:
+                break
+
+    # OK - no more user input, just wait for program exit
+    # FIXTHIS - could kill this thread here?
+    while 1:
+        time.sleep(1)
+
+
+# grab - main routine to grab line data and time the output of each line.
+# Takes a list of arguments, as they would have been passed in sys.argv
+# that is, a list of strings.
+# also can take an optional file descriptor for where to send the data
+# by default, data read from the subprocess or device is sent to sys.stdout,
+# but you can specify your own (already open) file descriptor, or None.  This
+# would only make sense if you specified another out_filename with
+#    "-o","myoutputfilename"
+# Return value: True if we should 'restart' the program
+def timeit(arglist, outputfd=sys.stdout):
+    global verbose      # pylint: disable=I0011,C0103
+    global cmdinput     # pylint: disable=I0011,C0103
+
+    # parse the command line options
+    try:
+        opts, args = getopt.getopt(
+            arglist,
+            "hli:dcfs:aTF:m:e:o:AQvVq:nS", [
+                "help",
+                "launchtime",
+                "instantpat=",
+                "device=",
+                "command=",
+                "force-reset",
+                "string=",
+                "again",
+                "systime",
+                "timeformat=",
+                "match=",
+                "endtime=",
+                "output=",
+                "append",
+                "quiet",
+                "verbose",
+                "version",
+                "quitpat=",
+                "nodelta",
+                "skip",
+                "crtonewline",
+                "stderr",
+            ])
+    except getopt.GetoptError:
+        # print help info and exit
+        print("Error parsing command line options")
+        usage(2)
+
+    # FIXTHIS - read from a subprocess' stdout (and stderr?)
+    # FIXTHIS - read from a character device
+    fd = sys.stdin
+
+    force = False
+    show_time = True
+    show_systime = False
+    basepat = ""
+    instantpat = ''
+    quitpat = ''
+    basetime = 0
+    instanttime = None
+    endtime = 0
+    out_filename = None
+    out = None
+    out_permissions = "wb"
+    append = False
+    command = ""
+    use_stdin = True
+    skip_device_check = False
+    cr_to_nl = False
+    restart = False
+    quiet = False
+    systime_format = "%H:%M:%S.%f"
+    use_delta = True
+    out_filenamehasdate = 0
+
+    for opt, arg in opts:
+        if opt in ["-h", "--help"]:
+            usage(0)
+        if opt in ["-d", "--device"]:
+            use_stdin = False
+            device = arg
+            fd.close()
+            if not skip_device_check and not check_device(device):
+                print("""Error: device '%s' does not exist, aborting.
+    If you think this really exists, then try using the -S option
+    to skip the device check. (put it before the -d argument)"""
+                      % device)
+                usage(2)
+            fd.open(device)
+        if opt in ["-s", "--string"]:
+            string = arg
+        if opt in ["-c", "--command"]:
+            use_stdin = False
+            command = arg
+            # FIXTHIS - also use remaining args as args to called command
+        if opt in ["-f", "--force-set"]:
+            force = True
+        if opt in ["-t", "--time"]:
+            show_time = True
+            show_systime = False
+        if opt in ["-a", "--again"]:
+            restart = True
+        if opt in ["-T", "--systime"]:
+            show_time = False
+            show_systime = True
+        if opt in ["-F", "--timeformat"]:
+            systime_format = arg
+        if opt in ["-m", "--match"]:
+            basepat = arg
+        if opt in ["-i", "--instantpat"]:
+            instantpat = arg
+        if opt in ["-q", "--quitpat"]:
+            quitpat = arg
+        if opt in ["-l", "--launchtime"]:
+            print('setting basetime to time of program launch')
+            basetime = time.time()
+        if opt in ["-e", "--endtime"]:
+            endstr = arg
+            try:
+                endtime = time.time()+float(endstr)
+            except ValueError:
+                print("Error: invalid endtime %s specified" % arg)
+                fd.close()
+                sys.exit(3)
+        if opt in ["-o", "--output"]:
+            out_filename = arg
+            if out_filename == "%":
+                out_filename = "%Y-%m-%dT%H:%M:%S"
+            if "%d" in out_filename:
+                out_pattern = out_filename
+                out_filenamehasdate = 1
+            if "%" in out_filename:
+                out_filename = datetime.datetime.now().strftime(out_filename)
+        if opt in ["-A", "--append"]:
+            out_permissions = "a+b"
+            append = True
+        if opt in ["-Q", "--quiet"]:
+            quiet = True
+        if opt in ["-v", "--verbose"]:
+            verbose = 1
+        if opt in ["-V", "--version"]:
+            print(cmd +  " version %d.%d.%d" % VERSION)
+            fd.close()
+            sys.exit(0)
+        if opt in ["-S", "--skip"]:
+            skip_device_check = True
+        if opt in ["-n", "--nodelta"]:
+            use_delta = False
+        if opt in ["--crtonewline"]:
+            cr_to_nl = True
+        if opt in ["--stderr"]:
+            # FIXTHIS - not my own stderr!
+            # --stderr only makes sense when executing a command
+            fd = sys.stderr
+
+    # if verbose, show what our settings are
+    if endtime and not restart:
+        vprint("Program set to end in %s seconds" % endstr)
+    if endtime and restart:
+        vprint("Program set to restart after %s seconds." % endstr)
+    if show_time:
+        vprint("Printing timing information for each line")
+    if show_systime:
+        vprint("Printing absolute timing information for each line")
+    if basepat:
+        vprint("Matching pattern '%s' to set base time" % basepat)
+    if instantpat:
+        vprint("Instant pattern '%s' to report time of at end of run"
+               % instantpat)
+    if quitpat and not restart:
+        vprint("Instant pattern '%s' to exit program" % quitpat)
+    if quitpat and restart:
+        vprint("Instant pattern '%s' to restart program" % quitpat)
+    if skip_device_check:
+        vprint("Skipping check of serial device")
+    if out_filename:
+        try:
+            # open in binary mode, to pass through data as unmodified
+            # as possible
+            out = open(out_filename, out_permissions)
+            if out_filenamehasdate:
+                out_opendate = datetime.date.today()
+        except IOError:
+            print("Can't open output file '%s'" % out_filename)
+            sys.exit(1)
+        if append:
+            vprint("Appending data to '%s'" % out_filename)
+        else:
+            vprint("Saving data to '%s'" % out_filename)
+    if quiet:
+        vprint("Keeping quiet on stdout")
+
+    prev1 = 0
+    linetime = 0
+    newline = 1
+    curline = ""
+    vprint("Use Control-C to stop...")
+
+    if not use_stdin:
+        # capture stdin to send data to a device or called command
+        try:
+            thread.start_new_thread(read_input, ())
+        except thread.error:
+            print("Error starting thread for read input\n")
+
+    stop_reason = "an unknown reason"
+    # read from the fd until something stops the program
+    while 1:
+        try:
+            if cmdinput:
+                fd.write((cmdinput + u"\n").encode("utf8"))
+                cmdinput = u""
+
+            # read a byte
+            # NOTE: x should be a byte string in both python 2 and 3
+            # NOTE: this is a blocking call - not sure if cmdinput can
+            # accumulate and be sent to device while we're blocked here
+            x = fd.read(1)
+            if use_stdin and not x:
+                # empty read on stdin means end of file
+                stop_reason = "end of input"
+                break
+
+            # see if we're supposed to stop yet
+            if endtime and time.time() > endtime:
+                stop_reason = "time expiration"
+                break
+
+            # if we didn't read anything, loop
+            if len(x) == 0:
+                # can only get here in device or command mode
+                # but even then - does this work?
+                # need to do a quick poll in order for timing to be as accurate a possible
+                # ie - I can't delay here
+                continue
+
+            # convert carriage returns to newlines.
+            if x == b"\r":
+                if cr_to_nl:
+                    x = b"\n"
+                else:
+                    continue
+
+            # set basetime to when first char is received
+            if not basetime:
+                basetime = time.time()
+
+            # if outputting data to a file with a date in its name and the
+            # date has changed, then close it and open a new file.
+            if (out_filename
+                    and out_filenamehasdate
+                    and newline
+                    and datetime.date.today() > out_opendate
+                    and not endtime):
+                vprint("Closing output file: '%s'\n" % out_filename)
+                out.close()
+                out_filename = datetime.datetime.now().strftime(out_pattern)
+                vprint("Opening new output file: '%s'\n" % out_filename)
+                try:
+                    out = open(out_filename, out_permissions)
+                    out_opendate = datetime.date.today()
+                except IOError:
+                    print("Can't open output file '%s'" % out_filename)
+                    sys.exit(1)
+
+            if show_time and newline:
+                linetime = time.time()
+                elapsed = linetime-basetime
+                delta = elapsed-prev1
+                msg = "[%4.6f %2.6f] " % (elapsed, delta)
+                if not quiet:
+                    if outputfd:
+                        outputfd.write(msg)
+                if out:
+                    try:
+                        out.write(msg.encode(sys.stdout.encoding))
+                    except UnicodeEncodeError:
+                        try:
+                            out.write(msg.encode("utf8"))
+                        except UnicodeEncodeError:
+                            out.write(msg)
+
+                prev1 = elapsed
+                newline = 0
+
+            if show_systime and newline:
+                linetime = time.time()
+                linetimestr = datetime.datetime.now().strftime(systime_format)
+                elapsed = linetime-basetime
+                if use_delta:
+                    delta = elapsed-prev1
+                    msg = "[%s %2.6f] " % (linetimestr, delta)
+                else:
+                    msg = "[%s] " % (linetimestr)
+                if not quiet:
+                    outputfd.write(msg)
+                if out:
+                    try:
+                        out.write(msg.encode(sys.stdout.encoding))
+                    except UnicodeEncodeError:
+                        try:
+                            out.write(msg.encode("utf8"))
+                        except UnicodeEncodeError:
+                            out.write(msg)
+
+                prev1 = elapsed
+                newline = 0
+
+            # FIXTHIS - should I buffer the output here??
+            if not quiet:
+                # x is a bytestr
+                outputfd.write(x.decode("utf8", "ignore"))
+                # You sometimes get an error here if the serial port gives
+                # you garbage data.  This can happen, for instance, when
+                # the uart changes line speed during bootup.
+                #
+                # NOTE: I chose 'ignore' for decoding errors
+                # because I believe the most common use case is
+                # a user watching stdout from grabserial in a terminal
+                # window.  You don't want to emit weird characters
+                # in that case.  However, this will end up losing
+                # characters that can't be decoded.  Another option
+                # is 'replace', with its own set of issues.
+                #
+                # Note that the exact data from the serial port is
+                # preserved in an output file (specified with the -o
+                # parameter), so you can use that to diagnose weird
+                # uart problems, if needed.
+            if out:
+                # save bytestring data exactly as received from serial port
+                # (ie there is no 'decode' here)
+                out.write(x)
+
+            # curline is in unicode
+            curline += x.decode("utf8", "ignore")
+
+            # watch for patterns
+            if instantpat and not instanttime and \
+                    re.search(instantpat, curline):
+                # instantpat is in curline:
+                instanttime = time.time()
+
+            # Exit the loop if quitpat matches
+            if quitpat and re.search(quitpat, curline):
+                stop_reason = "match of quit pattern '" + \
+                    quitpat + "' was found"
+                break
+
+            if x == b"\n":
+                newline = 1
+                if basepat and re.match(basepat, curline):
+                    basetime = linetime
+                    elapsed = 0
+                    prev1 = 0
+                curline = ""
+            sys.stdout.flush()
+            if out:
+                out.flush()
+
+        except EnvironmentError:
+            stop_reason = "some external error"
+
+            # An actual error.  We don't want to restart the program in this
+            # case, so this function will return false.
+            restart = False
+            break
+        except KeyboardInterrupt:
+            stop_reason = "keyboard interrupt"
+
+            # Looks like user wants to stop, don't restart.
+            restart = False
+            break
+
+    fd.close()
+    if instanttime:
+        instanttime_str = '%4.6f' % (instanttime-basetime)
+        msg = u'\nThe instantpat: "%s" was matched at %s\n' % \
+            (instantpat, instanttime_str)
+        if not quiet:
+            outputfd.write(msg)
+            outputfd.flush()
+        if out:
+            try:
+                out.write(msg.encode(sys.stdout.encoding))
+            except UnicodeEncodeError:
+                try:
+                    out.write(msg.encode("utf8"))
+                except UnicodeEncodeError:
+                    out.write(msg)
+            out.flush()
+
+    if out:
+        out.close()
+
+    vprint("%s stopped due to %s" % (cmd, stop_reason))
+
+    return restart
+
+if __name__ == "__main__":
+    while True:
+        restart = timeit(sys.argv[1:])
+
+        # Return value is true if we should 'restart' the program
+        if restart:
+            vprint("Restarting %s\n" %
+                datetime.datetime.now().strftime("%H:%M:%S.%f"))
+        else:
+            break
+
+# emacs custom variables for using tabs
+# indent-tabs-mode: nil
+# tab-width: 4
