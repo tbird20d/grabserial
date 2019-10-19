@@ -80,8 +80,8 @@ options:
                            set a base time.  Time values for lines after the
                            line matching the pattern will be relative to
                            this base time.
-    -i, --instantpat=<pat> Specify a regular expression pattern to have its
-                           time reported at end of run.  It works mid-line.
+    -i, --inlinepat=<pat>  Specify an regular expression pattern, with match
+                           time to be reported at end of run.  It works mid-line.
     -q, --quitpat=<pat>    Specify a regular expression pattern to end the
                            program.  It works mid-line.
     -l, --launchtime       Set base time from launch of program.
@@ -154,7 +154,7 @@ def timeit(arglist, outputfd=sys.stdout):
             "hli:dcfs:aTF:m:e:o:AQvVq:nS", [
                 "help",
                 "launchtime",
-                "instantpat=",
+                "inlinepat=",
                 "device=",
                 "command=",
                 "force-reset",
@@ -188,10 +188,10 @@ def timeit(arglist, outputfd=sys.stdout):
     show_time = True
     show_systime = False
     basepat = ""
-    instantpat = ''
+    inlinepat = ''
     quitpat = ''
     basetime = 0
-    instanttime = None
+    inline_time = None
     endtime = 0
     out_filename = None
     out = None
@@ -241,8 +241,8 @@ def timeit(arglist, outputfd=sys.stdout):
             systime_format = arg
         if opt in ["-m", "--match"]:
             basepat = arg
-        if opt in ["-i", "--instantpat"]:
-            instantpat = arg
+        if opt in ["-i", "--inlinepat"]:
+            inlinepat = arg
         if opt in ["-q", "--quitpat"]:
             quitpat = arg
         if opt in ["-l", "--launchtime"]:
@@ -298,13 +298,14 @@ def timeit(arglist, outputfd=sys.stdout):
         vprint("Printing absolute timing information for each line")
     if basepat:
         vprint("Matching pattern '%s' to set base time" % basepat)
-    if instantpat:
-        vprint("Instant pattern '%s' to report time of at end of run"
-               % instantpat)
-    if quitpat and not restart:
-        vprint("Instant pattern '%s' to exit program" % quitpat)
-    if quitpat and restart:
-        vprint("Instant pattern '%s' to restart program" % quitpat)
+    if inlinepat:
+        vprint("Inline pattern '%s' to report time of at end of run"
+               % inlinepat)
+    if quitpat:
+        if restart:
+            vprint("Inline pattern '%s' to restart program" % quitpat)
+        else:
+            vprint("Inline pattern '%s' to exit program" % quitpat)
     if skip_device_check:
         vprint("Skipping check of serial device")
     if out_filename:
@@ -469,10 +470,10 @@ def timeit(arglist, outputfd=sys.stdout):
             curline += x.decode("utf8", "ignore")
 
             # watch for patterns
-            if instantpat and not instanttime and \
-                    re.search(instantpat, curline):
-                # instantpat is in curline:
-                instanttime = time.time()
+            if inlinepat and not inline_time and \
+                    re.search(inlinepat, curline):
+                # inlinepat is in curline:
+                inline_time = time.time()
 
             # Exit the loop if quitpat matches
             if quitpat and re.search(quitpat, curline):
@@ -506,10 +507,10 @@ def timeit(arglist, outputfd=sys.stdout):
             break
 
     fd.close()
-    if instanttime:
-        instanttime_str = '%4.6f' % (instanttime-basetime)
-        msg = u'\nThe instantpat: "%s" was matched at %s\n' % \
-            (instantpat, instanttime_str)
+    if inline_time:
+        inline_time_str = '%4.6f' % (inline_time-basetime)
+        msg = u'\nThe inlinepat: "%s" was matched at %s\n' % \
+            (inlinepat, inline_time_str)
         if not quiet:
             outputfd.write(msg)
             outputfd.flush()
