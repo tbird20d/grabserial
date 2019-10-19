@@ -63,10 +63,10 @@ def usage(rcode):
     Usage: %s [options]
 options:
     -h, --help             Print this message
-    -d, --device=<devpath> Specify a device to read, instead of a command
+    -d, --device=<devpath> Specify a device to read from, to time lines from
     -e, --endtime=<secs>   End the program after the specified seconds have
                            elapsed.
-    -c, --command=<cmd>    Execute a command to time
+    -c, --command=<cmd>    Execute a command to time lines from
     -s, --string=<str>     Send a string to the command before reading
     -a, --again            Restart application after -e expires, -q is triggered.
     -T, --systime          Print system time for each line received. The time
