@@ -39,6 +39,9 @@ import getopt
 import time
 import datetime
 import re
+import errno
+from subprocess import *
+import shlex
 
 try:
     import thread
@@ -100,9 +103,6 @@ options:
     sys.exit(rcode)
 
 
-def check_device(device):
-    return os.path.exists(device)
-
 def read_input():
     global cmdinput     # pylint: disable=I0011,C0103
 
@@ -129,12 +129,12 @@ def read_input():
                 break
 
     # OK - no more user input, just wait for program exit
-    # FIXTHIS - could kill this thread here?
+    # FIXTHIS - could exit this thread here?
+    # should just be able to return
     while 1:
         time.sleep(1)
 
-
-# grab - main routine to grab line data and time the output of each line.
+# timeit - main routine to grab line data and time the output of each line.
 # Takes a list of arguments, as they would have been passed in sys.argv
 # that is, a list of strings.
 # also can take an optional file descriptor for where to send the data
@@ -149,15 +149,13 @@ def timeit(arglist, outputfd=sys.stdout):
 
     # parse the command line options
     try:
-        opts, args = getopt.getopt(
-            arglist,
-            "hli:dcfs:aTF:m:e:o:AQvVq:nS", [
+        opts, args = getopt.getopt( arglist,
+                "hli:d:c:s:aTF:m:e:o:AQvVq:n", [
                 "help",
                 "launchtime",
                 "inlinepat=",
                 "device=",
                 "command=",
-                "force-reset",
                 "string=",
                 "again",
                 "systime",
@@ -171,7 +169,6 @@ def timeit(arglist, outputfd=sys.stdout):
                 "version",
                 "quitpat=",
                 "nodelta",
-                "skip",
                 "crtonewline",
                 "stderr",
             ])
@@ -180,11 +177,9 @@ def timeit(arglist, outputfd=sys.stdout):
         print("Error parsing command line options")
         usage(2)
 
-    # FIXTHIS - read from a subprocess' stdout (and stderr?)
-    # FIXTHIS - read from a character device
+    # assume reading from stdin, but that can change
     fd = sys.stdin
 
-    force = False
     show_time = True
     show_systime = False
     basepat = ""
@@ -198,8 +193,8 @@ def timeit(arglist, outputfd=sys.stdout):
     out_permissions = "wb"
     append = False
     command = ""
-    use_stdin = True
-    skip_device_check = False
+    use_stdin = True    # read stdin of this process
+    use_stderr = True   # read stderr of called process
     cr_to_nl = False
     restart = False
     quiet = False
@@ -214,21 +209,22 @@ def timeit(arglist, outputfd=sys.stdout):
             use_stdin = False
             device = arg
             fd.close()
-            if not skip_device_check and not check_device(device):
-                print("""Error: device '%s' does not exist, aborting.
-    If you think this really exists, then try using the -S option
-    to skip the device check. (put it before the -d argument)"""
-                      % device)
-                usage(2)
-            fd.open(device)
+            try:
+                # FIXTHIS - don't assume device is always writable
+                fd = open(device, "rwb")
+            except IOError as e:
+                print("Error opening device '%s': %s (%s)" % \
+                        (device, e, errno.errorcode[e.errno]))
+                sys.exit(e.errno)
+
+            # assume device can also be written to
+            outfd = fd
+
         if opt in ["-s", "--string"]:
             string = arg
         if opt in ["-c", "--command"]:
             use_stdin = False
             command = arg
-            # FIXTHIS - also use remaining args as args to called command
-        if opt in ["-f", "--force-set"]:
-            force = True
         if opt in ["-t", "--time"]:
             show_time = True
             show_systime = False
@@ -276,8 +272,6 @@ def timeit(arglist, outputfd=sys.stdout):
             print(cmd +  " version %d.%d.%d" % VERSION)
             fd.close()
             sys.exit(0)
-        if opt in ["-S", "--skip"]:
-            skip_device_check = True
         if opt in ["-n", "--nodelta"]:
             use_delta = False
         if opt in ["--crtonewline"]:
@@ -285,7 +279,30 @@ def timeit(arglist, outputfd=sys.stdout):
         if opt in ["--stderr"]:
             # FIXTHIS - not my own stderr!
             # --stderr only makes sense when executing a command
-            fd = sys.stderr
+            use_stderr = True
+
+    # if running a command, launch it now
+    if command:
+        # FIXTHIS - support timing lines on both stdout and stderr
+        arg_list = shlex.split(command)
+        try:
+            print("Launching '%s'" % arg_list)
+            pd = Popen(arg_list, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                    close_fds=True)
+        except CalledProcessError as e:
+            sys.stderr.write("Error running '%s': %s, error code = %d" % \
+                    (command, e.output, e.returncode))
+            sys.exit(e.returncode)
+
+        # Popen.stdin has a handle to write to the process' stdin
+        # Popen.stdout has a handle to read the process' stdout
+        # Popen.stderr has a handle to read the process' stderr
+
+        if use_stderr:
+            fd = pd.stderr
+        else:
+            fd = pd.stdout
+        outfd = pd.stdin
 
     # if verbose, show what our settings are
     if endtime and not restart:
@@ -306,8 +323,6 @@ def timeit(arglist, outputfd=sys.stdout):
             vprint("Inline pattern '%s' to restart program" % quitpat)
         else:
             vprint("Inline pattern '%s' to exit program" % quitpat)
-    if skip_device_check:
-        vprint("Skipping check of serial device")
     if out_filename:
         try:
             # open in binary mode, to pass through data as unmodified
@@ -327,7 +342,7 @@ def timeit(arglist, outputfd=sys.stdout):
 
     prev1 = 0
     linetime = 0
-    newline = 1
+    newline = True
     curline = ""
     vprint("Use Control-C to stop...")
 
@@ -340,10 +355,10 @@ def timeit(arglist, outputfd=sys.stdout):
 
     stop_reason = "an unknown reason"
     # read from the fd until something stops the program
-    while 1:
+    while True:
         try:
             if cmdinput:
-                fd.write((cmdinput + u"\n").encode("utf8"))
+                outfd.write((cmdinput + u"\n").encode("utf8"))
                 cmdinput = u""
 
             # read a byte
@@ -351,6 +366,7 @@ def timeit(arglist, outputfd=sys.stdout):
             # NOTE: this is a blocking call - not sure if cmdinput can
             # accumulate and be sent to device while we're blocked here
             x = fd.read(1)
+            print("TRB: got byte '%s'" % x)
             if use_stdin and not x:
                 # empty read on stdin means end of file
                 stop_reason = "end of input"
@@ -416,7 +432,7 @@ def timeit(arglist, outputfd=sys.stdout):
                             out.write(msg)
 
                 prev1 = elapsed
-                newline = 0
+                newline = False
 
             if show_systime and newline:
                 linetime = time.time()
@@ -439,28 +455,14 @@ def timeit(arglist, outputfd=sys.stdout):
                             out.write(msg)
 
                 prev1 = elapsed
-                newline = 0
+                newline = False
 
             # FIXTHIS - should I buffer the output here??
             if not quiet:
                 # x is a bytestr
                 outputfd.write(x.decode("utf8", "ignore"))
-                # You sometimes get an error here if the serial port gives
-                # you garbage data.  This can happen, for instance, when
-                # the uart changes line speed during bootup.
-                #
-                # NOTE: I chose 'ignore' for decoding errors
-                # because I believe the most common use case is
-                # a user watching stdout from grabserial in a terminal
-                # window.  You don't want to emit weird characters
-                # in that case.  However, this will end up losing
-                # characters that can't be decoded.  Another option
-                # is 'replace', with its own set of issues.
-                #
-                # Note that the exact data from the serial port is
-                # preserved in an output file (specified with the -o
-                # parameter), so you can use that to diagnose weird
-                # uart problems, if needed.
+                outputfd.flush()
+
             if out:
                 # save bytestring data exactly as received from serial port
                 # (ie there is no 'decode' here)
@@ -482,7 +484,7 @@ def timeit(arglist, outputfd=sys.stdout):
                 break
 
             if x == b"\n":
-                newline = 1
+                newline = True
                 if basepat and re.match(basepat, curline):
                     basetime = linetime
                     elapsed = 0
