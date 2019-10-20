@@ -15,13 +15,16 @@
 #
 # Some examples:
 # $ ssh -vvv user@host 2>&1 | timeit -l
-#   show the time for each debug output line from ssh, starting from launch time
-#
+#   show the time for each debug output line from ssh, starting from
+#   launch time
 #
 # To do:
 #  - validate 'device' mode (open a character device and time that)
-#  - add 'command' mode (launch a command and time that)
-#    - review need for stderr flag
+#  - support use_stdboth - read from and time both stdout and stderr
+#    - use Popoen(..., stderr=STDOUT)
+#  - support writing to stdin of launched program
+#    - right now, we block on the read from program stdout, which
+#    means our loop never gets the chance to send data
 #
 # Bugs:
 # - cr's are getting lost in stdin mode for interactive sessions
@@ -194,7 +197,7 @@ def timeit(arglist, outputfd=sys.stdout):
     append = False
     command = ""
     use_stdin = True    # read stdin of this process
-    use_stderr = True   # read stderr of called process
+    use_stderr = False   # read stderr of called process
     cr_to_nl = False
     restart = False
     quiet = False
@@ -366,7 +369,6 @@ def timeit(arglist, outputfd=sys.stdout):
             # NOTE: this is a blocking call - not sure if cmdinput can
             # accumulate and be sent to device while we're blocked here
             x = fd.read(1)
-            print("TRB: got byte '%s'" % x)
             if use_stdin and not x:
                 # empty read on stdin means end of file
                 stop_reason = "end of input"
@@ -379,11 +381,12 @@ def timeit(arglist, outputfd=sys.stdout):
 
             # if we didn't read anything, loop
             if len(x) == 0:
-                # can only get here in device or command mode
+                # can only get here in device or command mode (not use_stdin)
                 # but even then - does this work?
                 # need to do a quick poll in order for timing to be as accurate a possible
                 # ie - I can't delay here
-                continue
+                stop_reason = "end of input"
+                break
 
             # convert carriage returns to newlines.
             if x == b"\r":
