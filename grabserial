@@ -23,6 +23,9 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2020.02.08 - Version 2.0.2
+#   - fix byte-string conversion bug introduced by command_mode changes
+#     (Dang this unicode/bytecode handling in Python 3.0 is a pain!)
 #  2020.02.08 - Version 2.0.1
 #   - rename instantpat to inlinepat (all logic is the same)
 #     - preserve old --instantpat argument name for compatibility
@@ -177,7 +180,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 0, 1)
+VERSION = (2, 0, 2)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -519,7 +522,7 @@ def grab(arglist, outputfd=sys.stdout):
     linetime = 0
     newline = 1
     curline = ""
-    xline = ""
+    xline = b""
     vprint("Use Control-C to stop...")
 
     try:
@@ -734,7 +737,7 @@ def grab(arglist, outputfd=sys.stdout):
                     elapsed = 0
                     prev1 = 0
                 curline = ""
-                xline = ""
+                xline = b""
             sys.stdout.flush()
             if out:
                 out.flush()
