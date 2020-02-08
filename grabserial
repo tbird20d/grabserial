@@ -23,7 +23,8 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
-#  2020.02.08 - Version 2.0.2
+#  2020.02.08 - Version 2.0.4
+#   - de-reference symlinks in device_exists()
 #   - use stderr for error output, handle more errors, don't show usage on
 #     errors (it's too big now)
 #   - fix byte-string conversion bug introduced by command_mode changes
@@ -181,7 +182,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 0, 3)
+VERSION = (2, 0, 4)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -205,6 +206,8 @@ def usage():
 
 def device_exists(device):
     """Check that the specified serial device exists."""
+    if os.path.islink(device):
+        device=os.path.realpath(device)
     try:
         from serial.tools import list_ports
 
