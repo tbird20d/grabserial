@@ -23,6 +23,9 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2020.02.08 - Version 2.0.1
+#   - rename instantpat to inlinepat (all logic is the same)
+#     - preserve old --instantpat argument name for compatibility
 #  2020.02.07 - Version 2.0.0
 #   - add command mode (-C) to support using grabserial for showing
 #     output from executing a single command over the serial port
@@ -60,7 +63,7 @@
 #    to new files, and add no-warranty language to grabserial.
 #  2015.03.10 - Version 1.8.0 - add -o option for saving output to a file
 #    add -T option for absolute times. Both contributed by ramaxlo
-#  2015.03.10 - Version 1.7.1 - add line feed to instantpat result line
+#  2015.03.10 - Version 1.7.1 - add line feed to inlinepat result line
 #  2014.09.28 - Version 1.7.0 - add option for force reset for USB serial
 #    contributed by John Mehaffey <mehaf@gedanken.com>
 #  2014.01.07 - Version 1.6.0 - add option for exiting based on a
@@ -69,7 +72,7 @@
 #   (thanks to Yegor Yefromov for the idea and code)
 #  2013.12.16 - Version 1.5.1 - Change my e-mail address
 #  2011.12.19 - Version 1.5.0 - add options for mid-line time capture
-#    (instantpat) and base time from launch of program instead of
+#    (inlinepat) and base time from launch of program instead of
 #    first char seen (launchtime) - contributed by Kent Borg
 #  2011-09-24 - better time output and time delta
 #    Constantine Shulyupin <const@makelinux.com>
@@ -89,7 +92,7 @@ try:
 except ImportError:
     import _thread as thread
 
-VERSION = (2, 0, 0)
+VERSION = (2, 0, 1)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -129,14 +132,13 @@ options:
                            is the absolute local time when the first character
                            of each line is received by %s
     -F, --timeformat=<val> Specifies system time format for each received line
-                           e.g.
-                           -F \"%%Y-%%m-%%d %%H:%%M:%%S.%%f\"
+                           e.g. -F \"%%Y-%%m-%%d %%H:%%M:%%S.%%f\"
                            (default \"%%H:%%M:%%S.%%f\")
     -m, --match=<pat>      Specify a regular expression pattern to match to
                            set a base time.  Time values for lines after the
                            line matching the pattern will be relative to
                            this base time.
-    -i, --instantpat=<pat> Specify a regular expression pattern to have its
+    -i, --inlinepat=<pat>  Specify a regular expression pattern to have its
                            time reported at end of run.  It works mid-line.
     -q, --quitpat=<pat>    Specify a regular expression pattern to end the
                            program.  It works mid-line.
@@ -234,6 +236,7 @@ def grab(arglist, outputfd=sys.stdout):
             "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:AQvVq:nSC", [
                 "help",
                 "launchtime",
+                "inlinepat=",
                 "instantpat=",
                 "device=",
                 "baudrate=",
@@ -281,10 +284,10 @@ def grab(arglist, outputfd=sys.stdout):
     show_time = 0
     show_systime = 0
     basepat = ""
-    instantpat = ''
+    inlinepat = ''
     quitpat = ''
     basetime = 0
-    instanttime = None
+    inlinetime = None
     endtime = 0
     out_filename = None
     out = None
@@ -370,8 +373,9 @@ def grab(arglist, outputfd=sys.stdout):
             systime_format = arg
         if opt in ["-m", "--match"]:
             basepat = arg
-        if opt in ["-i", "--instantpat"]:
-            instantpat = arg
+        if opt in ["-i", "--inlinepat", "--instantpat"]:
+            # --instantpat is supported for backwards compatibility
+            inlinepat = arg
         if opt in ["-q", "--quitpat"]:
             quitpat = arg
         if opt in ["-l", "--launchtime"]:
@@ -447,13 +451,13 @@ def grab(arglist, outputfd=sys.stdout):
         vprint("Printing absolute timing information for each line")
     if basepat:
         vprint("Matching pattern '%s' to set base time" % basepat)
-    if instantpat:
-        vprint("Instant pattern '%s' to report time of at end of run"
-               % instantpat)
+    if inlinepat:
+        vprint("Inline pattern '%s' to report time of at end of run"
+               % inlinepat)
     if quitpat and not restart:
-        vprint("Instant pattern '%s' to exit program" % quitpat)
+        vprint("Using pattern '%s' to exit program" % quitpat)
     if quitpat and restart:
-        vprint("Instant pattern '%s' to restart program" % quitpat)
+        vprint("Using pattern '%s' to restart program" % quitpat)
     if skip_device_check:
         vprint("Skipping check of serial device")
     if out_filename:
@@ -675,10 +679,10 @@ def grab(arglist, outputfd=sys.stdout):
                 out.write(x)
 
             # watch for patterns
-            if instantpat and not instanttime and \
-                    re.search(instantpat, curline):
-                # instantpat is in curline:
-                instanttime = time.time()
+            if inlinepat and not inlinetime and \
+                    re.search(inlinepat, curline):
+                # inlinepat is in curline:
+                inlinetime = time.time()
 
             # Exit the loop if quitpat matches
             if quitpat and re.search(quitpat, curline):
@@ -730,10 +734,10 @@ def grab(arglist, outputfd=sys.stdout):
             break
 
     sd.close()
-    if instanttime:
-        instanttime_str = '%4.6f' % (instanttime-basetime)
-        msg = u'\nThe instantpat: "%s" was matched at %s\n' % \
-            (instantpat, instanttime_str)
+    if inlinetime:
+        inlinetime_str = '%4.6f' % (inlinetime-basetime)
+        msg = u'\nThe inlinepat: "%s" was matched at %s\n' % \
+            (inlinepat, inlinetime_str)
         if not quiet:
             outputfd.write(msg)
             outputfd.flush()
