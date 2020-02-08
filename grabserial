@@ -188,7 +188,7 @@ def device_exists(device):
 
 
 def read_input():
-    global cmdinput     # pylint: disable=I0011,C0103
+    global cmdinput     # pylint: disable=I0011,C0103,W0603
 
     # NOTE: cmdinput is in unicode (to make handling similar between
     # python2 and python3)
@@ -227,8 +227,8 @@ def read_input():
 #    "-o","myoutputfilename"
 # Return value: True if we should 'restart' the program
 def grab(arglist, outputfd=sys.stdout):
-    global verbose      # pylint: disable=I0011,C0103
-    global cmdinput     # pylint: disable=I0011,C0103
+    global verbose      # pylint: disable=I0011,C0103,W0603
+    global cmdinput     # pylint: disable=I0011,C0103,W0603
 
     # parse the command line options
     try:
