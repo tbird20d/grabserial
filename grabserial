@@ -4,15 +4,15 @@
 #
 # grabserial - program to read a serial port and send the data to stdout
 #
-# Copyright 2006,2018 Sony Corporation
+# Copyright 2006,2020 Sony Corporation
 #
 # This program is provided under the Gnu General Public License (GPL)
 # version 2 ONLY. This program is distributed WITHOUT ANY WARRANTY.
 # See the LICENSE file, which should have accompanied this program,
 # for the text of the license.
 #
-# 2019-09-03 by Tim Bird <tim.bird@sony.com>
-# 2006-09-07 by Tim Bird
+# 2020-02-08 by Tim Bird <tim.bird@sony.com>
+# Started 2006-09-07 by Tim Bird
 #
 # To do:
 #  * support interrupting capture with Ctrl-C
@@ -82,7 +82,6 @@
 import os
 import sys
 import getopt
-import serial
 import time
 import datetime
 import re
@@ -91,6 +90,8 @@ try:
     import thread
 except ImportError:
     import _thread as thread
+
+import serial
 
 VERSION = (2, 0, 1)
 
@@ -159,11 +160,11 @@ options:
     -n, --nodelta          Skip printing delta between read lines.
         --crtonewline      Promote a carriage return to be treated as a
                            newline
-    -C, --command-mode     Perform a single command on the serial port, and omit
-                           command echo and shell prompt from output.  Must be
-                           used with -c and -q options, with the argument to -q
-                           being interpreted as the prompt returned after the
-                           command completes.
+    -C, --command-mode     Perform a single command on the serial port, and
+                           omit command echo and shell prompt from output.
+                           Must be used with -c and -q options, with the
+                           argument to -q being interpreted as the prompt
+                           returned after the command completes.
 
 Ex: %s -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
@@ -429,15 +430,15 @@ def grab(arglist, outputfd=sys.stdout):
         cmd_done = False
         quit_index = 0
         quit_done = False
-        vprint("Executing command '%s', and terminating on '%s'" % (command, quitpat))
+        vprint("Executing command '%s', and terminating on '%s'" %
+               (command, quitpat))
 
     # if verbose, show what our settings are
     if sd.port:
         vprint("Opening serial port %s" % sd.port)
-        vprint(
-            "%d:%d%s%s:xonxoff=%d:rtscts=%d" %
-            (sd.baudrate, sd.bytesize, sd.parity, sd.stopbits,
-             sd.xonxoff, sd.rtscts))
+        vprint("%d:%d%s%s:xonxoff=%d:rtscts=%d" %
+               (sd.baudrate, sd.bytesize, sd.parity, sd.stopbits,
+                sd.xonxoff, sd.rtscts))
     else:
         print("Error: Missing serial port to read from")
         usage(2)
@@ -476,7 +477,6 @@ def grab(arglist, outputfd=sys.stdout):
             vprint("Saving data to '%s'" % out_filename)
     if quiet:
         vprint("Keeping quiet on stdout")
-
 
     prev1 = 0
     linetime = 0
@@ -633,41 +633,41 @@ def grab(arglist, outputfd=sys.stdout):
 
             # this is tricky! Enjoy.
             if command_mode:
-               # check for data to suppress
-               if not cmd_done and cmd_index == len(curline)-1:
-                   if curline[cmd_index] == command[cmd_index]:
-                       cmd_index += 1
-                       out_char = None
-                       if cmd_index >= len(command):
-                           cmd_done = True
-                   else:
-                       # mis-match, output partial match, if any
-                       # FIXTHIS - only look at first line returned by port
-                       # (maybe set cmd_done when first \n is detected??)
-                       if cmd_index:
-                           if not quiet:
-                               outputfd.write(curline)
-                           if out:
-                               out.write(xline)
-                           # we just wrote it out, no need to do it later
-                           out_char = None
-                       cmd_index = 0
+                # check for data to suppress
+                if not cmd_done and cmd_index == len(curline)-1:
+                    if curline[cmd_index] == command[cmd_index]:
+                        cmd_index += 1
+                        out_char = None
+                        if cmd_index >= len(command):
+                            cmd_done = True
+                    else:
+                        # mis-match, output partial match, if any
+                        # FIXTHIS - only look at first line returned by port
+                        # (maybe set cmd_done when first \n is detected??)
+                        if cmd_index:
+                            if not quiet:
+                                outputfd.write(curline)
+                            if out:
+                                out.write(xline)
+                            # we just wrote it out, no need to do it later
+                            out_char = None
+                        cmd_index = 0
 
-               if not quit_done and quit_index == len(curline)-1:
-                   if curline[quit_index] == quitpat[quit_index]:
-                       quit_index += 1
-                       out_char = None
-                       if quit_index >= len(quitpat):
-                           quit_done = True
-                   else:
-                       # mis-match
-                       if quit_index:
-                           if not quiet:
-                               outputfd.write(curline)
-                           if out:
-                               out.write(xline)
-                           out_char = None
-                       quit_index = 0
+                if not quit_done and quit_index == len(curline)-1:
+                    if curline[quit_index] == quitpat[quit_index]:
+                        quit_index += 1
+                        out_char = None
+                        if quit_index >= len(quitpat):
+                            quit_done = True
+                    else:
+                        # mis-match
+                        if quit_index:
+                            if not quiet:
+                                outputfd.write(curline)
+                            if out:
+                                out.write(xline)
+                            out_char = None
+                        quit_index = 0
 
             # FIXTHIS - should I buffer the output here??
             if not quiet and out_char:
@@ -758,12 +758,12 @@ def grab(arglist, outputfd=sys.stdout):
 
     return restart
 
+
 if __name__ == "__main__":
     while True:
-        restart = grab(sys.argv[1:])
+        restart_requested = grab(sys.argv[1:])
 
-        # Return value is true if we should 'restart' the program
-        if restart:
+        if restart_requested:
             vprint(
                 "Restarting %s\n" %
                 datetime.datetime.now().strftime("%H:%M:%S.%f"))
