@@ -24,9 +24,10 @@
 #
 # CHANGELOG:
 #  2020.02.08 - Version 2.0.2
+#   - use stderr for error output, handle more errors, don't show usage on
+#     errors (it's too big now)
 #   - fix byte-string conversion bug introduced by command_mode changes
 #     (Dang this unicode/bytecode handling in Python 3.0 is a pain!)
-#  2020.02.08 - Version 2.0.1
 #   - rename instantpat to inlinepat (all logic is the same)
 #     - preserve old --instantpat argument name for compatibility
 #  2020.02.07 - Version 2.0.0
@@ -180,7 +181,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 0, 2)
+VERSION = (2, 0, 3)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -191,12 +192,15 @@ def vprint(message):
     if verbose:
         print(message)
 
+def eprint(message):
+    """Print message to standard error."""
+    sys.stderr.write(message+'\n')
 
-def usage(rcode):
+def usage():
     """Show grabserial usage help."""
-    print("Usage: grabserial [options]\n")
+    print("Usage: grabserial -d <device> [options]\n")
     print(__doc__)
-    sys.exit(rcode)
+    sys.exit(0)
 
 
 def device_exists(device):
@@ -259,7 +263,7 @@ def grab(arglist, outputfd=sys.stdout):
     Arguments:
       arglist             : the list of arguments to configure the serial
                             port and control output and processing
-                            (see usage()).
+                            (see usage help).
       outputfd (optional) : a file stream to which output should be sent.
                             Defaults to sys.stdout.
 
@@ -305,10 +309,12 @@ def grab(arglist, outputfd=sys.stdout):
                 "crtonewline",
                 "command-mode",
             ])
-    except getopt.GetoptError:
+    except getopt.GetoptError, err:
         # print help info and exit
-        print("Error parsing command line options")
-        usage(2)
+        eprint("Error parsing command line options:")
+        eprint(str(err))
+        eprint("Use 'grabserial -h' to get usage help")
+        sys.exit(2)
 
     sd = serial.Serial()
     sd.port = ""
@@ -346,23 +352,25 @@ def grab(arglist, outputfd=sys.stdout):
 
     for opt, arg in opts:
         if opt in ["-h", "--help"]:
-            usage(0)
+            usage()
         if opt in ["-d", "--device"]:
             device = arg
             if not skip_device_check and not device_exists(device):
-                print("""Error: serial device '%s' does not exist, aborting.
-    If you think this port really exists, then try using the -S option
-    to skip the serial device check. (put it before the -d argument)"""
-                      % device)
+                eprint("""Error: serial device '%s' does not exist, aborting.
+If you think this port really exists, then try using the -S option
+to skip the serial device check. (put it before the -d argument)
+
+Use 'grabserial -h' for usage help."""
+                       % device)
                 sd.close()
-                usage(2)
+                sys.exit(2)
             sd.port = device
         if opt in ["-b", "--baudrate"]:
             baud = int(arg)
             if baud not in sd.BAUDRATES:
-                print("Error: invalid baud rate '%d' specified" % baud)
-                print("Valid baud rates are: %s" % str(sd.BAUDRATES))
-                print("You can force the baud rate using the -B option")
+                eprint("Error: invalid baud rate '%d' specified" % baud)
+                eprint("Valid baud rates are: %s" % str(sd.BAUDRATES))
+                eprint("You can force the baud rate using the -B option")
                 sd.close()
                 sys.exit(3)
             sd.baudrate = baud
@@ -371,24 +379,24 @@ def grab(arglist, outputfd=sys.stdout):
         if opt in ["-p", "--parity"]:
             par = arg.upper()
             if par not in sd.PARITIES:
-                print("Error: invalid parity '%s' specified" % par)
-                print("Valid parities are: %s" % str(sd.PARITIES))
+                eprint("Error: invalid parity '%s' specified" % par)
+                eprint("Valid parities are: %s" % str(sd.PARITIES))
                 sd.close()
                 sys.exit(3)
             sd.parity = par
         if opt in ["-w", "--width"]:
             width = int(arg)
             if width not in sd.BYTESIZES:
-                print("Error: invalid data bit width '%d' specified" % width)
-                print("Valid data bit widths are: %s" % str(sd.BYTESIZES))
+                eprint("Error: invalid data bit width '%d' specified" % width)
+                eprint("Valid data bit widths are: %s" % str(sd.BYTESIZES))
                 sd.close()
                 sys.exit(3)
             sd.bytesize = width
         if opt in ["-s", "--stopbits"]:
             stop = int(arg)
             if stop not in sd.STOPBITS:
-                print("Error: invalid stopbits '%d' specified" % stop)
-                print("Valid stopbits are: %s" % str(sd.STOPBITS))
+                eprint("Error: invalid stopbits '%d' specified" % stop)
+                eprint("Valid stopbits are: %s" % str(sd.STOPBITS))
                 sd.close()
                 sys.exit(3)
             sd.stopbits = stop
@@ -420,14 +428,14 @@ def grab(arglist, outputfd=sys.stdout):
         if opt in ["-q", "--quitpat"]:
             quitpat = arg
         if opt in ["-l", "--launchtime"]:
-            print('setting basetime to time of program launch')
+            vprint('Setting basetime to time of program launch')
             basetime = time.time()
         if opt in ["-e", "--endtime"]:
             endstr = arg
             try:
                 endtime = time.time()+float(endstr)
             except ValueError:
-                print("Error: invalid endtime %s specified" % arg)
+                eprint("Error: invalid endtime %s specified" % arg)
                 sd.close()
                 sys.exit(3)
         if opt in ["-o", "--output"]:
@@ -457,13 +465,19 @@ def grab(arglist, outputfd=sys.stdout):
         if opt in ["--crtonewline"]:
             cr_to_nl = 1
 
+    if args:
+        eprint("Error: unrecognized argument '%s'" % args[0])
+        eprint("Use 'grabserial -h' to get usage help")
+        eprint("")
+        sys.exit(2)
+
     if command_mode:
         if not command:
-            print("Error: Must specify a command in command-mode")
+            eprint("Error: Must specify a command in command-mode")
             sd.close()
             sys.exit(3)
         if not quitpat:
-            print("Error: Must specify a quit pattern in command-mode")
+            eprint("Error: Must specify a quit pattern in command-mode")
             sd.close()
             sys.exit(3)
         cmd_index = 0
@@ -480,8 +494,10 @@ def grab(arglist, outputfd=sys.stdout):
                (sd.baudrate, sd.bytesize, sd.parity, sd.stopbits,
                 sd.xonxoff, sd.rtscts))
     else:
-        print("Error: Missing serial port to read from")
-        usage(2)
+        eprint("Error: Missing serial port to read from.")
+        eprint("Use 'grabserial -h' to get usage help")
+        sys.exit(2)
+
     if endtime and not restart:
         vprint("Program set to end in %s seconds" % endstr)
     if endtime and restart:
