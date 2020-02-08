@@ -79,37 +79,27 @@
 #  2008-06-02 - Version 1.1.0 add support for sending a command to
 #    the serial port before grabbing output
 
-import os
-import sys
-import getopt
-import time
-import datetime
-import re
 
-try:
-    import thread
-except ImportError:
-    import _thread as thread
+# Use the module docstring as the usage text for the program
+"""Grabserial reads data from a serial port, processes it, and outputs it.
 
-import serial
+It is much more flexible than a simple 'cat' command.
+It keeps track of timing data, and can record when a pattern is seen
+in the data. It can show timing data for every line received.
+It can save the data to a file and can quit or restart based on a
+timeout or when a pattern is seen.  It can split the data into multiple
+files based on timeout or a pattern.
 
-VERSION = (2, 0, 1)
+It supports interactive writing to the serial port during data collection.
 
-verbose = 0         # pylint: disable=I0011,C0103
-cmdinput = u""      # pylint: disable=I0011,C0103
+It is useful for things like:
+ 1. capturing and annotating data from a serial port
+ 2. logging data to multiple files
+ 3. timing events in a stream of data
+    (such as how long it takes a Linux kernel to boot)
+ 4. executing commands to a serial console.
 
-
-def vprint(message):
-    if verbose:
-        print(message)
-
-
-def usage(rcode):
-    cmd = "grabserial"
-
-    print("""%s : Serial line reader
-    Usage: %s [options]
-options:
+Options:
     -h, --help             Print this message
     -d, --device=<devpath> Set the device to read (default '/dev/ttyS0')
     -b, --baudrate=<val>   Set the baudrate (default 115200)
@@ -126,12 +116,12 @@ options:
     -c, --command=<cmd>    Send a command to the port before reading
     -t, --time             Print time for each line received.  The time is
                            when the first character of each line is
-                           received by %s
+                           received by grabserial.
     -a, --again            Restart application after -e expires, -q is
                            triggered, or the serial device is disconnected.
     -T, --systime          Print system time for each line received. The time
                            is the absolute local time when the first character
-                           of each line is received by %s
+                           of each line is received by grabserial.
     -F, --timeformat=<val> Specifies system time format for each received line
                            e.g. -F \"%%Y-%%m-%%d %%H:%%M:%%S.%%f\"
                            (default \"%%H:%%M:%%S.%%f\")
@@ -166,15 +156,48 @@ options:
                            argument to -q being interpreted as the prompt
                            returned after the command completes.
 
-Ex: %s -e 30 -t -m "^Linux version.*"
+Ex: grabserial -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
 each line, and re-setting the base time when the line starting with
 "Linux version" is seen.
-""" % (cmd, cmd, cmd, cmd, cmd))
+"""
+
+
+import os
+import sys
+import getopt
+import time
+import datetime
+import re
+
+try:
+    import thread
+except ImportError:
+    import _thread as thread
+
+import serial
+
+VERSION = (2, 0, 1)
+
+verbose = 0         # pylint: disable=I0011,C0103
+cmdinput = u""      # pylint: disable=I0011,C0103
+
+
+def vprint(message):
+    """Print message if in verbose mode."""
+    if verbose:
+        print(message)
+
+
+def usage(rcode):
+    """Show grabserial usage help."""
+    print("Usage: grabserial [options]\n")
+    print(__doc__)
     sys.exit(rcode)
 
 
 def device_exists(device):
+    """Check that the specified serial device exists."""
     try:
         from serial.tools import list_ports
 
@@ -188,6 +211,7 @@ def device_exists(device):
 
 
 def read_input():
+    """Read input from stdin in a thread separate from the grab routine."""
     global cmdinput     # pylint: disable=I0011,C0103,W0603
 
     # NOTE: cmdinput is in unicode (to make handling similar between
@@ -227,6 +251,19 @@ def read_input():
 #    "-o","myoutputfilename"
 # Return value: True if we should 'restart' the program
 def grab(arglist, outputfd=sys.stdout):
+    """Grab data from a serial port and produce formatted output.
+
+    Arguments:
+      arglist             : the list of arguments to configure the serial
+                            port and control output and processing
+                            (see usage()).
+      outputfd (optional) : a file stream to which output should be sent.
+                            Defaults to sys.stdout.
+
+    Returns True if the grab should be restarted.  This may be the
+    case if the connection was broken due to a timeout or an error
+    on the serial port, and continuous recording is requested.
+    """
     global verbose      # pylint: disable=I0011,C0103,W0603
     global cmdinput     # pylint: disable=I0011,C0103,W0603
 
