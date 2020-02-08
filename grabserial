@@ -451,9 +451,9 @@ def grab(arglist, outputfd=sys.stdout):
     if show_systime:
         vprint("Printing absolute timing information for each line")
     if basepat:
-        vprint("Matching pattern '%s' to set base time" % basepat)
+        vprint("Using pattern '%s' to set base time" % basepat)
     if inlinepat:
-        vprint("Inline pattern '%s' to report time of at end of run"
+        vprint("Using inline pattern '%s' to report time of at end of run"
                % inlinepat)
     if quitpat and not restart:
         vprint("Using pattern '%s' to exit program" % quitpat)
