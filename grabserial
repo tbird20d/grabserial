@@ -637,7 +637,7 @@ Use 'grabserial -h' for usage help."""
                     sys.exit(1)
 
                 # set up for next rotation
-                rotate_time = time.time() + rotate_interval
+                rotate_time += rotate_interval
 
             # if we didn't read anything, loop
             if len(x) == 0:
