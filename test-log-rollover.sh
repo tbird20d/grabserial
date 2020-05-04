@@ -45,6 +45,7 @@ echo "==================================="
 # use timestamps per line (-t)
 # quit when "login" is seen (-q "login")
 # send data to <timestamp>.log (-o "...")
-./grabserial  -v -S -d ${console_dev} -R 10 -t -q "login" -o "%Y-%m-%dT%H:%M:%S.log"
+#./grabserial  -v -S -d ${console_dev} -R 10 -t -q "login" -o "%Y-%m-%dT%H:%M:%S.log"
+./grabserial  -v -S -d ${console_dev} -R 10 -t -q "login" -o "%F_%T.log"
 
 echo "Done in test-log-rollover.sh"
