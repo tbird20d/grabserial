@@ -610,6 +610,11 @@ Use 'grabserial -h' for usage help."""
     except thread.error:
         print("Error starting thread for read input\n")
 
+    # use stdout encoding, or "utf8" for output
+    out_encoding = sys.stdout.encoding
+    if out_encoding == None:
+        out_encoding = "utf8"
+
     stop_reason = "grabserial stopped for an unknown reason"
     # read from the serial port until something stops the program
     while 1:
@@ -689,7 +694,7 @@ Use 'grabserial -h' for usage help."""
                         outputfd.write(msg)
                 if out:
                     try:
-                        out.write(msg.encode(sys.stdout.encoding))
+                        out.write(msg.encode(out_encoding))
                     except UnicodeEncodeError:
                         try:
                             out.write(msg.encode("utf8"))
@@ -712,7 +717,7 @@ Use 'grabserial -h' for usage help."""
                     outputfd.write(msg)
                 if out:
                     try:
-                        out.write(msg.encode(sys.stdout.encoding))
+                        out.write(msg.encode(out_encoding))
                     except UnicodeEncodeError:
                         try:
                             out.write(msg.encode("utf8"))
@@ -876,7 +881,7 @@ Use 'grabserial -h' for usage help."""
             outputfd.flush()
         if out:
             try:
-                out.write(msg.encode(sys.stdout.encoding))
+                out.write(msg.encode(out_encoding))
             except UnicodeEncodeError:
                 try:
                     out.write(msg.encode("utf8"))
