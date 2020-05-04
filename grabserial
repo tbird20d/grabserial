@@ -23,7 +23,9 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
-#  2020.05.01 - Version 2.1
+#  2020.05.04 - Version 2.1.1
+#   - add split-lines feature (-z)
+#  2020.05.01 - Version 2.1.0
 #   - add explicit log rotation feature (-R).  This should help
 #     avoid data loss when doing a log rotation.  Previous method using
 #     a restart (e.g. 'e 3600 -a') closed and reopend the serial port.
@@ -129,6 +131,8 @@ Options:
     -a, --again            Restart application after -e expires, -q is
                            triggered, or the serial device is disconnected.
     -R, --rotate=<time>    Rotate logs every <time> period. Time is in seconds.
+    -z, --split-lines      Allow log rotation to split a line of input.  By
+                           default, program only rotates logs on line breaks.
     -T, --systime          Print system time for each line received. The time
                            is the absolute local time when the first character
                            of each line is received by grabserial.
@@ -187,7 +191,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 0)
+VERSION = (2, 1, 1)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -288,7 +292,7 @@ def grab(arglist, outputfd=sys.stdout):
     try:
         opts, args = getopt.getopt(
             arglist,
-            "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:AR:QvVq:nSC", [
+            "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:AR:QvVq:nSCz", [
                 "help",
                 "launchtime",
                 "inlinepat=",
@@ -319,6 +323,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "skip",
                 "crtonewline",
                 "command-mode",
+                "split-lines",
             ])
     except getopt.GetoptError as err:
         # print help info and exit
@@ -358,6 +363,7 @@ def grab(arglist, outputfd=sys.stdout):
     restart = False
     rotate_interval = 0
     rotate_time = 0
+    split_lines = False
     quiet = False
     systime_format = "%H:%M:%S.%f"
     use_delta = True
@@ -471,7 +477,8 @@ Use 'grabserial -h' for usage help."""
                 sd.close()
                 sys.exit(3)
             rotate_time = time.time() + rotate_interval
-
+        if opt in ["-z", "--split-lines"]:
+            split_lines = True
         if opt in ["-Q", "--quiet"]:
             quiet = True
         if opt in ["-v", "--verbose"]:
@@ -621,7 +628,7 @@ Use 'grabserial -h' for usage help."""
                 break
 
             # check for log rotation
-            if rotate_time and time.time() > rotate_time:
+            if split_lines and rotate_time and time.time() > rotate_time:
                 vprint("Time for log rotation at %s" %
                        datetime.datetime.now().strftime("%H:%M:%S.%f"))
 
@@ -804,9 +811,29 @@ Use 'grabserial -h' for usage help."""
                     prev1 = 0
                 curline = ""
                 xline = b""
+
             sys.stdout.flush()
             if out:
                 out.flush()
+                # check for log rotation
+                if newline and rotate_time and time.time() > rotate_time:
+                    vprint("Time for log rotation at %s" %
+                           datetime.datetime.now().strftime("%H:%M:%S.%f"))
+
+                    vprint("Closing output file: '%s'" % out_filename)
+                    out.close()
+                    out_filename = \
+                        datetime.datetime.now().strftime(out_pattern)
+                    vprint("Opening new output file: '%s'" % out_filename)
+                    try:
+                        out = open(out_filename, out_permissions)
+                        out_opendate = datetime.date.today()
+                    except IOError:
+                        print("Can't open output file '%s'" % out_filename)
+                        sys.exit(1)
+
+                    # set up for next rotation
+                    rotate_time += rotate_interval
 
         except serial.serialutil.SerialException:
             # This is the exception which is raised when you unplug the USB
