@@ -23,6 +23,9 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2020.05.14 - Version 2.1.2
+#   - add rotation time rounding feature.  If a units suffix is added
+#     to the rotation time, then rotate on an even multiple of that time.
 #  2020.05.04 - Version 2.1.1
 #   - add split-lines feature (-z)
 #  2020.05.01 - Version 2.1.0
@@ -131,6 +134,11 @@ Options:
     -a, --again            Restart application after -e expires, -q is
                            triggered, or the serial device is disconnected.
     -R, --rotate=<time>    Rotate logs every <time> period. Time is in seconds.
+                           If time is suffixed with 's', 'm', or 'h', then
+                           value is in the indicated units (seconds, minutes
+                           or hours), and the rotation time is rounded to the
+                           nearest multiple of that time. eg '-R 30m' will
+                           rotate the logs every half hour, at xx:00 and xx:30
     -z, --split-lines      Allow log rotation to split a line of input.  By
                            default, program only rotates logs on line breaks.
     -T, --systime          Print system time for each line received. The time
@@ -191,7 +199,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 1)
+VERSION = (2, 1, 2)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -260,6 +268,25 @@ def read_input():
     # OK - no more user input, just wait for program exit
     while 1:
         time.sleep(1)
+
+
+def round_time(timestamp, round_to=60):
+    """Round a timestamp up to any time lapse in seconds
+
+    timestamp: time in seconds since the epoch
+    round_to: Closest number of seconds to round to, default 1 minute
+
+    based on code from:
+    Author: Thierry Husson 2012 - Use it as you want but don't blame me
+    from https://stackoverflow.com/questions/3463930/
+       how-to-round-the-minute-of-a-datetime-object-python
+    """
+
+    dt = datetime.datetime.fromtimestamp(timestamp)
+    seconds = (dt.replace(tzinfo=None) - dt.min).seconds
+    rounding = (seconds + round_to) // round_to * round_to
+    dt += datetime.timedelta(0, rounding - seconds, -dt.microsecond)
+    return time.mktime(dt.timetuple())
 
 
 # grab - main routine to grab a serial port and time the output of each line
@@ -361,8 +388,9 @@ def grab(arglist, outputfd=sys.stdout):
     skip_device_check = 0
     cr_to_nl = 0
     restart = False
-    rotate_interval = 0
-    rotate_time = 0
+    rotate_interval = 0.0
+    rotate_time = 0.0
+    delay_start = False
     split_lines = False
     quiet = False
     systime_format = "%H:%M:%S.%f"
@@ -470,13 +498,31 @@ Use 'grabserial -h' for usage help."""
             out_permissions = "a+b"
             append = True
         if opt in ["-R", "--rotate"]:
+            round_rotate_time = False
+            rotate_interval_units = arg[-1]
+            if rotate_interval_units in ['s', 'm', 'h']:
+                arg = arg[:-1]
+                round_rotate_time = True
+
             try:
                 rotate_interval = float(arg)
             except ValueError:
                 eprint("Error: invalid rotation time %s specified" % arg)
                 sd.close()
                 sys.exit(3)
-            rotate_time = time.time() + rotate_interval
+
+            now = time.time()
+            rotate_time = now + rotate_interval
+            if round_rotate_time:
+                delay_start = True
+                if rotate_interval_units == 's':
+                    rotate_time = round_time(now, rotate_interval)
+                if rotate_interval_units == 'm':
+                    rotate_interval = rotate_interval * 60
+                    rotate_time = round_time(now, rotate_interval)
+                if rotate_interval_units == 'h':
+                    rotate_interval = rotate_interval * 3600
+                    rotate_time = round_time(now, rotate_interval)
         if opt in ["-z", "--split-lines"]:
             split_lines = True
         if opt in ["-Q", "--quiet"]:
@@ -612,10 +658,16 @@ Use 'grabserial -h' for usage help."""
 
     # use stdout encoding, or "utf8" for output
     out_encoding = sys.stdout.encoding
-    if out_encoding == None:
-        out_encoding = "utf8"
+    if out_encoding is None:
+        out_encoding = "utf8"  # pylint: disable=I0011,redefined-variable-type
 
     stop_reason = "grabserial stopped for an unknown reason"
+
+    # delay until next rotate time, if we're trying to be precise
+    if delay_start:
+        while time.time() < rotate_time:
+            pass
+
     # read from the serial port until something stops the program
     while 1:
         try:
