@@ -1,12 +1,24 @@
 #!/bin/sh
 #
-# For pylint-related info, see:
-#    https://jeffknupp.com/blog/2016/12/09/how-python-linters-will-save-your-large-python-project/
+# test-log-rollover.sh - test how grabserial performs log-rollovers
+#
+# to do:
+#  should test with  and without split-lines  -z
+#  should test with and without rotation rounding (rotation units)
+#    '-R 10s' or '-R 2m'
+#  should test with ping on target:
+#    start a 'ping -i 0.05 localhost' on the target, for high-frequency output
+#
+#  - should check that line boundaries are observed when not using -z
+#  - should check that log rotation is at even boundaries when using rounding
+#  - should check that no data is lost during rotation
+#
 
 if [ -n "$1" ] ; then
     if [ "$1" = "-h" ] ; then
         echo "Usage: test.sh [options]"
         echo " -h  Show this usage help"
+        echo " -p  Using high-frequency ping instead of bootup"
         echo ""
         echo "test-log-rollover.sh will run grabserial on a boot of"
         echo "the board 'bbb' (using the ttc command), rolling over the log"
@@ -25,7 +37,6 @@ echo "Running grabserial on target 'bbb'"
 
 # get the console device for target 'bbb'
 console_dev="$(ttc info bbb -n console_dev)"
-
 
 # Also, use ttc to reboot bbb
 
