@@ -23,6 +23,8 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2020.05.22 - Version 2.1.3
+#   - remove delay_start feature (not needed by user using rotation rounding)
 #  2020.05.14 - Version 2.1.2
 #   - add rotation time rounding feature.  If a units suffix is added
 #     to the rotation time, then rotate on an even multiple of that time.
@@ -199,7 +201,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 2)
+VERSION = (2, 1, 3)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -390,7 +392,6 @@ def grab(arglist, outputfd=sys.stdout):
     restart = False
     rotate_interval = 0.0
     rotate_time = 0.0
-    delay_start = False
     split_lines = False
     quiet = False
     systime_format = "%H:%M:%S.%f"
@@ -514,7 +515,6 @@ Use 'grabserial -h' for usage help."""
             now = time.time()
             rotate_time = now + rotate_interval
             if round_rotate_time:
-                delay_start = True
                 if rotate_interval_units == 's':
                     rotate_time = round_time(now, rotate_interval)
                 if rotate_interval_units == 'm':
@@ -662,11 +662,6 @@ Use 'grabserial -h' for usage help."""
         out_encoding = "utf8"  # pylint: disable=I0011,redefined-variable-type
 
     stop_reason = "grabserial stopped for an unknown reason"
-
-    # delay until next rotate time, if we're trying to be precise
-    if delay_start:
-        while time.time() < rotate_time:
-            pass
 
     # read from the serial port until something stops the program
     while 1:
