@@ -489,6 +489,8 @@ Use 'grabserial -h' for usage help."""
         if opt in ["-o", "--output"]:
             out_filename = arg
             out_pattern = "%Y-%m-%dT%H:%M:%S"
+            if os.name == 'nt':
+                out_pattern = out_pattern.replace(":",".")
             if "%d" in out_filename:
                 out_filenamehasdate = 1
             if "%" in out_filename:
