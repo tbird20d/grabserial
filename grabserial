@@ -490,11 +490,12 @@ Use 'grabserial -h' for usage help."""
             out_filename = arg
             out_pattern = "%Y-%m-%dT%H:%M:%S"
             if os.name == 'nt':
-                out_pattern = out_pattern.replace(":",".")
+                out_pattern = out_pattern.replace(":", ".")
             if "%d" in out_filename:
                 out_filenamehasdate = 1
             if "%" in out_filename:
-                out_filename = out_filename.replace("%",datetime.datetime.now().strftime(out_pattern))
+                out_filename = out_filename.replace("%",
+                                 datetime.datetime.now().strftime(out_pattern))
         if opt in ["-A", "--append"]:
             out_permissions = "a+b"
             append = True
