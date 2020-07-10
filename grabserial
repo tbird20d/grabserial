@@ -494,8 +494,13 @@ Use 'grabserial -h' for usage help."""
             if "%d" in out_filename:
                 out_filenamehasdate = 1
             if "%" in out_filename:
-                out_filename = out_filename.replace("%",
-                                 datetime.datetime.now().strftime(out_pattern))
+                if "%%" in out_filename:
+                    # %% use default out_pattern
+                    out_pattern = out_filename.replace("%%", out_pattern)
+                else:
+                    # use custom format string
+                    out_pattern = out_filename
+                out_filename = datetime.datetime.now().strftime(out_pattern)
         if opt in ["-A", "--append"]:
             out_permissions = "a+b"
             append = True
