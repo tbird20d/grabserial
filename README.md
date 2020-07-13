@@ -39,11 +39,17 @@ with settings 115200:8N1:xonxoff=0:rtscts=0 (-b 115200)
 to the output file "2017-06-13T22:45:08" (-o "%"), for 1 hour (-e 3600)
 and then restart (-a) to create new log.
 
-    $ 'grabserial -d /dev/ttyUSB2 -C -q "nsh>" -c free
+    $ grabserial -d /dev/ttyUSB2 -C -q "nsh>" -c free
 
 Send the 'free' command to the serial port (-c free), and show output
 until a prompt of "nsh>" is seen (-q "nsh>"). Suppress the command echo
 and shell prompt (-C).
+
+    $ grabserial -v -d COM10 -B 9600 -T -R 1h -o "c:\log\%Y-%m-%dT%H-%M-%S.txt"
+
+Start a continous recording with timestamps for each line (-T)
+(eg: `[09:07:47.330944 0.007000]`) and create a new file with
+timestamp `%Y-%m-%dT%H-%M-%S` at the specified location every hour (-R).
 
 Notice - New Default ‘-o’ Behavior
 ----------------------------------
