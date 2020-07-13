@@ -159,7 +159,8 @@ Options:
                            program.  It works mid-line.
     -l, --launchtime       Set base time from launch of program.
     -o, --output=<name>    Output data to the named file.  If name equals
-                           "%" it is replaced with %Y-%m-%dT%H:%M:%S.
+                           "%" it is replaced with %Y-%m-%dT%H:%M:%S, otherwise
+                           standard strftime() patterns can be used.
     -A, --append           Append (rather than overwrite) output data to the
                            file specifed with -o option
     -Q, --quiet            Silent on stdout, serial port data is only written
