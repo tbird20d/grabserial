@@ -158,7 +158,7 @@ Options:
     -q, --quitpat=<pat>    Specify a regular expression pattern to end the
                            program.  It works mid-line.
     -l, --launchtime       Set base time from launch of program.
-    -o, --output=<name>    Output data to the named file.  If name includes
+    -o, --output=<name>    Output data to the named file.  If name equals
                            "%%" it is replaced with %%Y-%%m-%%dT%%H:%%M:%%S.
     -A, --append           Append (rather than overwrite) output data to the
                            file specifed with -o option
