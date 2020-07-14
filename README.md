@@ -45,6 +45,12 @@ Send the 'free' command to the serial port (-c free), and show output
 until a prompt of "nsh>" is seen (-q "nsh>"). Suppress the command echo
 and shell prompt (-C).
 
+    $  grabserial -v -d COM10 -B 9600 -T -R 1h -o "c:\log\%Y-%m-%dT%H-%M-%S.txt"
+    
+Start a continous recording with timestamps for each line (-T) (eg: `[09:07:47.330944 0.007000]`) 
+and create a new file with timestamp `%Y-%m-%dT%H-%M-%S` at the specified location 
+every hour (-R).
+
 Notice - New Default ‘-o’ Behavior
 ----------------------------------
 Using the '-o' option, as in the second example above, with a generic '%'

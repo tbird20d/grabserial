@@ -147,8 +147,8 @@ Options:
                            is the absolute local time when the first character
                            of each line is received by grabserial.
     -F, --timeformat=<val> Specifies system time format for each received line
-                           e.g. -F \"%%Y-%%m-%%d %%H:%%M:%%S.%%f\"
-                           (default \"%%H:%%M:%%S.%%f\")
+                           e.g. -F \"%Y-%m-%d %H:%M:%S.%f\"
+                           (default \"%H:%M:%S.%f\")
     -m, --match=<pat>      Specify a regular expression pattern to match to
                            set a base time.  Time values for lines after the
                            line matching the pattern will be relative to
@@ -158,8 +158,9 @@ Options:
     -q, --quitpat=<pat>    Specify a regular expression pattern to end the
                            program.  It works mid-line.
     -l, --launchtime       Set base time from launch of program.
-    -o, --output=<name>    Output data to the named file.  If name includes
-                           "%%" it is replaced with %%Y-%%m-%%dT%%H:%%M:%%S.
+    -o, --output=<name>    Output data to the named file.  If name equals
+                           "%" it is replaced with %Y-%m-%dT%H:%M:%S, otherwise
+                           standard strftime() patterns can be used.
     -A, --append           Append (rather than overwrite) output data to the
                            file specifed with -o option
     -Q, --quiet            Silent on stdout, serial port data is only written
