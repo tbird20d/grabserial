@@ -490,7 +490,7 @@ Use 'grabserial -h' for usage help."""
         if opt in ["-o", "--output"]:
             out_filename = arg
             if out_filename == "%":
-                out_filename = "%Y-%m-%d-%H-%M-%S"
+                out_filename = "%Y-%m-%d_%H-%M-%S"
             out_pattern = out_filename
             if "%d" in out_filename:
                 out_filenamehasdate = 1
