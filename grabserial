@@ -211,7 +211,7 @@ cmdinput = u""      # pylint: disable=I0011,C0103
 
 
 def str_to_bool(value):
-    if input == "False" or input == "false" or input == "0":
+    if value.lower() == "false" or value == "0":
         return False
     else:
         return True
