@@ -126,8 +126,8 @@ Options:
     -s, --stopbits=<val>   Set the stopbits (default 1)
     -x, --xonxoff          Enable software flow control (default off)
     -r, --rtscts           Enable RTS/CTS flow control (default off)
-        --rts=<val>        Explicitly set RTS to 'True' or 'False' (default 'True')
-        --dtr=<val>        Explicitly set DTR to 'True' or 'False' (default 'True')
+        --rts=<val>        Explicitly set RTS to 'True' (default) or 'False'
+        --dtr=<val>        Explicitly set DTR to 'True' (default) or 'False'
     -f, --force-reset      Force pyserial to reset device parameters
     -e, --endtime=<secs>   End the program after the specified seconds have
                            elapsed.
@@ -209,8 +209,8 @@ verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
 
 
-
 def str_to_bool(value):
+    """Convert string to python boolean type"""
     if value.lower() == "false" or value == "0":
         return False
     else:
@@ -512,8 +512,8 @@ Use 'grabserial -h' for usage help."""
             if "%d" in out_filename:
                 out_filenamehasdate = 1
             if "%" in out_filename:
-                out_filename = out_filename.replace("%",
-                                 datetime.datetime.now().strftime(out_pattern))
+                now_str = datetime.datetime.now().strftime(out_pattern)
+                out_filename = out_filename.replace("%", now_str)
         if opt in ["-A", "--append"]:
             out_permissions = "a+b"
             append = True
@@ -965,7 +965,7 @@ Use 'grabserial -h' for usage help."""
 
 if __name__ == "__main__":
     while True:
-        restart_requested = grab(sys.argv[1:])
+        restart_requested = grab(sys.argv[1:])  # pylint: disable=I0011,C0103
 
         if restart_requested:
             vprint(
