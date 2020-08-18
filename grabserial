@@ -215,7 +215,7 @@ def str_to_bool(value):
         return False
     else:
         return True
- 
+
 
 def vprint(message):
     """Print message if in verbose mode."""
@@ -473,7 +473,7 @@ Use 'grabserial -h' for usage help."""
         if opt in ["--rts"]:
             sd.rts = str_to_bool(arg)
         if opt in ["--dtr"]:
-            sd.dtr = str_to_bool(arg)  
+            sd.dtr = str_to_bool(arg)
         if opt in ["-f", "--force-set"]:
             force = True
         if opt in ["-t", "--time"]:
