@@ -29,7 +29,10 @@ if [ -n "$1" ] ; then
         echo "Running pylint to analyze grabserial source"
         # C0325 is unnecessary-parens (in python 2.0, parens for prints
         # is encouraged to make them forward-compatible with python 3.0)
-        pylint --disable=C0325 grabserial
+        # R0914 is "too many branches" (for the grab() function)
+        # R0914 is "too many local variables" (for the grab() function)
+        # R0915 is "too many statements" (for the grab() function)
+        pylint --disable=C0325,R0912,R0914,R0915, --good-names=dt,sd,x grabserial
         exit $?
     fi
 fi

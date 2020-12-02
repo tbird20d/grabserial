@@ -4,7 +4,7 @@
 import os
 from setuptools import setup
 
-VERSION = '1.9.8'
+VERSION = '2.1.3'
 
 setup(
     name='grabserial',

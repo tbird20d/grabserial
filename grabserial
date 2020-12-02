@@ -126,6 +126,8 @@ Options:
     -s, --stopbits=<val>   Set the stopbits (default 1)
     -x, --xonxoff          Enable software flow control (default off)
     -r, --rtscts           Enable RTS/CTS flow control (default off)
+        --rts=<val>        Explicitly set RTS to 'True' (default) or 'False'
+        --dtr=<val>        Explicitly set DTR to 'True' (default) or 'False'
     -f, --force-reset      Force pyserial to reset device parameters
     -e, --endtime=<secs>   End the program after the specified seconds have
                            elapsed.
@@ -206,6 +208,14 @@ VERSION = (2, 1, 3)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
+
+
+def str_to_bool(value):
+    """Convert string to python boolean type"""
+    if value.lower() == "false" or value == "0":
+        return False
+    else:
+        return True
 
 
 def vprint(message):
@@ -334,6 +344,8 @@ def grab(arglist, outputfd=sys.stdout):
                 "stopbits=",
                 "xonxoff",
                 "rtscts",
+                "rts=",
+                "dtr=",
                 "force-reset",
                 "command=",
                 "time",
@@ -371,6 +383,8 @@ def grab(arglist, outputfd=sys.stdout):
     sd.xonxoff = False
     sd.rtscts = False
     sd.dsrdtr = False
+    sd.rts = True
+    sd.dtr = True
     # specify a read timeout of 1 second
     sd.timeout = 1
     force = False
@@ -457,6 +471,10 @@ Use 'grabserial -h' for usage help."""
             sd.xonxoff = True
         if opt in ["-r", "--rtscts"]:
             sd.rtscts = True
+        if opt in ["--rts"]:
+            sd.rts = str_to_bool(arg)
+        if opt in ["--dtr"]:
+            sd.dtr = str_to_bool(arg)
         if opt in ["-f", "--force-set"]:
             force = True
         if opt in ["-t", "--time"]:
@@ -566,9 +584,9 @@ Use 'grabserial -h' for usage help."""
     # if verbose, show what our settings are
     if sd.port:
         vprint("Opening serial port %s" % sd.port)
-        vprint("%d:%d%s%s:xonxoff=%d:rtscts=%d" %
+        vprint("%d:%d%s%s:xonxoff=%d:rtscts=%d:rts=%d:dtr=%d" %
                (sd.baudrate, sd.bytesize, sd.parity, sd.stopbits,
-                sd.xonxoff, sd.rtscts))
+                sd.xonxoff, sd.rtscts, sd.rts, sd.dtr))
     else:
         eprint("Error: Missing serial port to read from.")
         eprint("Use 'grabserial -h' to get usage help")
@@ -947,7 +965,7 @@ Use 'grabserial -h' for usage help."""
 
 if __name__ == "__main__":
     while True:
-        restart_requested = grab(sys.argv[1:])
+        restart_requested = grab(sys.argv[1:])  # pylint: disable=I0011,C0103
 
         if restart_requested:
             vprint(
