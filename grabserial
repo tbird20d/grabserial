@@ -160,8 +160,9 @@ Options:
     -q, --quitpat=<pat>    Specify a regular expression pattern to end the
                            program.  It works mid-line.
     -l, --launchtime       Set base time from launch of program.
-    -o, --output=<name>    Output data to the named file.  If name includes
-                           "%%" it is replaced with %%Y-%%m-%%dT%%H:%%M:%%S.
+    -o, --output=<name>    Output data to the named file.  If name is
+                           "%%" it is replaced with %%Y-%%m-%%dT%%H-%%M-%%S.
+                           (or with %%Y-%%m-%%dT%%H:%%M:%%S for Linux)
     -A, --append           Append (rather than overwrite) output data to the
                            file specifed with -o option
     -Q, --quiet            Silent on stdout, serial port data is only written
@@ -505,15 +506,16 @@ Use 'grabserial -h' for usage help."""
                 sd.close()
                 sys.exit(3)
         if opt in ["-o", "--output"]:
-            out_filename = arg
-            out_pattern = "%Y-%m-%dT%H:%M:%S"
-            if os.name == 'nt':
-                out_pattern = out_pattern.replace(":", ".")
-            if "%d" in out_filename:
+            out_pattern = arg
+            if out_pattern == "%":
+                if os.name == "posix":
+                    out_pattern = "%Y-%m-%dT%H:%M:%S"
+                else:
+                    out_pattern = "%Y-%m-%dT%H-%M-%S"
+            if "%d" in out_pattern or "%F" in out_pattern:
                 out_filenamehasdate = 1
-            if "%" in out_filename:
-                now_str = datetime.datetime.now().strftime(out_pattern)
-                out_filename = out_filename.replace("%", now_str)
+            out_filename = datetime.datetime.now().strftime(out_pattern)
+
         if opt in ["-A", "--append"]:
             out_permissions = "a+b"
             append = True
