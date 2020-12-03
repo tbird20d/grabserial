@@ -509,9 +509,9 @@ Use 'grabserial -h' for usage help."""
             out_pattern = arg
             if out_pattern == "%":
                 if os.name == "posix":
-                    out_pattern = "%Y-%m-%dT%H:%M:%S"
+                    out_pattern = "%Y-%m-%d_%H:%M:%S"
                 else:
-                    out_pattern = "%Y-%m-%dT%H-%M-%S"
+                    out_pattern = "%Y-%m-%d_%H-%M-%S"
             if "%d" in out_pattern or "%F" in out_pattern:
                 out_filenamehasdate = 1
             out_filename = datetime.datetime.now().strftime(out_pattern)
