@@ -89,7 +89,7 @@ rm dir_list_before.txt dir_list_after.txt
 
 echo
 echo "Should have 3 new files, with names like:"
-echo "2020-12-02T22:10:06"
+echo "2020-12-02_22:10:06"
 echo "1606971316.log"
 echo "mylog-2020-12-02_22:10:25.log"
 echo
