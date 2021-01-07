@@ -692,7 +692,7 @@ Use 'grabserial -h' for usage help."""
                 sd.write((cmdinput + u"\n").encode("utf8"))
                 cmdinput = u""
 
-            # read for up to 1 second
+            # read exactly 1 byte (for up to one second, based on timeout set above)
             # NOTE: x should be a byte string in both python 2 and 3
             x = sd.read(1)
 
