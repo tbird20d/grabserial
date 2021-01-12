@@ -23,6 +23,8 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2021.01.12 - Version 2.1.4
+#   - add support for hex output
 #  2020.05.22 - Version 2.1.3
 #   - remove delay_start feature (not needed by user using rotation rounding)
 #  2020.05.14 - Version 2.1.2
@@ -183,6 +185,9 @@ Options:
                            Must be used with -c and -q options, with the
                            argument to -q being interpreted as the prompt
                            returned after the command completes.
+    --hex-output           Show data as hexadecimal codes, instead of
+                           characters.  Also output the data as hexadecimal
+                           codes to the output file.
 
 Ex: grabserial -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
@@ -205,7 +210,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 3)
+VERSION = (2, 1, 4)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -367,6 +372,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "crtonewline",
                 "command-mode",
                 "split-lines",
+                "hex-output",
             ])
     except getopt.GetoptError as err:
         # print help info and exit
@@ -413,6 +419,7 @@ def grab(arglist, outputfd=sys.stdout):
     systime_format = "%H:%M:%S.%f"
     use_delta = True
     out_filenamehasdate = 0
+    hex_output = False
 
     for opt, arg in opts:
         if opt in ["-h", "--help"]:
@@ -561,6 +568,8 @@ Use 'grabserial -h' for usage help."""
             use_delta = False
         if opt in ["--crtonewline"]:
             cr_to_nl = 1
+        if opt in ["--hex-output"]:
+            hex_output = True
 
     if args:
         eprint("Error: unrecognized argument '%s'" % args[0])
@@ -858,12 +867,18 @@ Use 'grabserial -h' for usage help."""
 
             # FIXTHIS - should I buffer the output here??
             if not quiet and out_char:
-                # x is a bytestr
-                outputfd.write(out_char)
+                if hex_output:
+                    outputfd.write("%02X " % ord(x))
+                else:
+                    # out_char is a character
+                    outputfd.write(out_char)
             if out and out_char:
-                # save bytestring data exactly as received from serial port
-                # (ie there is no 'decode' here)
-                out.write(x)
+                if hex_output:
+                    out.write("%02X " % ord(x))
+                else:
+                    # save bytestring data exactly as received from serial port
+                    # (ie there is no 'decode' here)
+                    out.write(x)
 
             # watch for patterns
             if inlinepat and not inlinetime and \
