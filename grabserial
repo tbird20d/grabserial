@@ -420,6 +420,7 @@ def grab(arglist, outputfd=sys.stdout):
     use_delta = True
     out_filenamehasdate = 0
     hex_output = False
+    max_bytes_per_line = 16
 
     for opt, arg in opts:
         if opt in ["-h", "--help"]:
@@ -654,6 +655,7 @@ Use 'grabserial -h' for usage help."""
     newline = 1
     curline = ""
     xline = b""
+    byte_count = 0
     vprint("Use Control-C to stop...")
 
     try:
@@ -733,8 +735,11 @@ Use 'grabserial -h' for usage help."""
             if len(x) == 0:
                 continue
 
+            if hex_output:
+                byte_count += 1
+
             # convert carriage returns to newlines.
-            if x == b"\r":
+            if x == b"\r" and not hex_output:
                 if cr_to_nl:
                     x = b"\n"
                 else:
@@ -865,20 +870,30 @@ Use 'grabserial -h' for usage help."""
                             out_char = None
                         quit_index = 0
 
+            # If we're outputting hex, then we don't care to decode the byte
+            # In fact, decoding a single byte with "utf-8" will error for
+            # hex byte values 0x80-0xFF (128-255 decimal), resulting in
+            # out_char being a zero length string.
+            if not quiet and hex_output:
+                outputfd.write("%02X " % ord(x))
+                if byte_count >= max_bytes_per_line:
+                    outputfd.write("\n")
+
+            if out and hex_output:
+                outbytestring = "%02X " % ord(x)
+                out.write(outbytestring.encode("utf-8"))
+                if byte_count >= max_bytes_per_line:
+                    out.write(b"\n")
+
             # FIXTHIS - should I buffer the output here??
-            if not quiet and out_char:
-                if hex_output:
-                    outputfd.write("%02X " % ord(x))
-                else:
-                    # out_char is a character
-                    outputfd.write(out_char)
-            if out and out_char:
-                if hex_output:
-                    out.write("%02X " % ord(x))
-                else:
-                    # save bytestring data exactly as received from serial port
-                    # (ie there is no 'decode' here)
-                    out.write(x)
+            if not quiet and out_char and not hex_output:
+                # out_char is a character
+                outputfd.write(out_char)
+
+            if out and out_char and not hex_output:
+                # save bytestring data exactly as received from serial port
+                # (ie there is no 'decode' here)
+                out.write(x)
 
             # watch for patterns
             if inlinepat and not inlinetime and \
@@ -892,7 +907,8 @@ Use 'grabserial -h' for usage help."""
                     quitpat + "' was found"
                 break
 
-            if x == b"\n":
+            if (x == b"\n" and not hex_output) \
+                    or (hex_output and byte_count >= max_bytes_per_line):
                 newline = 1
                 if basepat and re.match(basepat, curline):
                     basetime = linetime
@@ -900,6 +916,7 @@ Use 'grabserial -h' for usage help."""
                     prev1 = 0
                 curline = ""
                 xline = b""
+                byte_count = 0
 
             sys.stdout.flush()
             if out:
