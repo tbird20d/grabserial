@@ -735,9 +735,6 @@ Use 'grabserial -h' for usage help."""
             if len(x) == 0:
                 continue
 
-            if hex_output:
-                outline_bytecount += 1
-
             # convert carriage returns to newlines.
             if x == b"\r" and not hex_output:
                 if cr_to_nl:
@@ -870,15 +867,19 @@ Use 'grabserial -h' for usage help."""
                             out_char = None
                         quit_index = 0
 
+            # hex_output uses the byte 'x' rather than the string 'out_char'
             if hex_output:
+                outline_bytecount += 1
+                outputstring = "%02X " % ord(x)
                 if not quiet:
-                    outputfd.write("%02X " % ord(x))
+                    # outputfd.write wants a string
+                    outputfd.write(outputstring)
                     if outline_bytecount >= max_bytes_per_line:
                         outputfd.write("\n")
 
-                if out and hex_output:
-                    outbytestring = "%02X " % ord(x)
-                    out.write(outbytestring.encode("utf-8"))
+                if out:
+                    # out.write wants a byte object, so we encode
+                    out.write(outputstring.encode("utf8"))
                     if outline_bytecount >= max_bytes_per_line:
                         out.write(b"\n")
             else:
