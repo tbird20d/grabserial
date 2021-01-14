@@ -655,7 +655,7 @@ Use 'grabserial -h' for usage help."""
     newline = 1
     curline = ""
     xline = b""
-    byte_count = 0
+    outline_bytecount = 0
     vprint("Use Control-C to stop...")
 
     try:
@@ -736,7 +736,7 @@ Use 'grabserial -h' for usage help."""
                 continue
 
             if hex_output:
-                byte_count += 1
+                outline_bytecount += 1
 
             # convert carriage returns to newlines.
             if x == b"\r" and not hex_output:
@@ -880,13 +880,13 @@ Use 'grabserial -h' for usage help."""
             if hex_output:
                 if not quiet:
                     outputfd.write("%02X " % ord(x))
-                    if byte_count >= max_bytes_per_line:
+                    if outline_bytecount >= max_bytes_per_line:
                         outputfd.write("\n")
 
                 if out and hex_output:
                     outbytestring = "%02X " % ord(x)
                     out.write(outbytestring.encode("utf-8"))
-                    if byte_count >= max_bytes_per_line:
+                    if outline_bytecount >= max_bytes_per_line:
                         out.write(b"\n")
             else:
                 # FIXTHIS - should I buffer the output here??
@@ -912,7 +912,7 @@ Use 'grabserial -h' for usage help."""
                 break
 
             if (x == b"\n" and not hex_output) \
-                    or (hex_output and byte_count >= max_bytes_per_line):
+                    or (hex_output and outline_bytecount >= max_bytes_per_line):
                 newline = 1
                 if basepat and re.match(basepat, curline):
                     basetime = linetime
@@ -920,7 +920,7 @@ Use 'grabserial -h' for usage help."""
                     prev1 = 0
                 curline = ""
                 xline = b""
-                byte_count = 0
+                outline_bytecount = 0
 
             sys.stdout.flush()
             if out:
