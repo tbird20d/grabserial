@@ -870,13 +870,6 @@ Use 'grabserial -h' for usage help."""
                             out_char = None
                         quit_index = 0
 
-            # If we're outputting hex, then we don't care to decode the byte
-            # In fact, decoding a single byte with "utf-8" will error for
-            # hex byte values 0x80-0xFF (128-255 decimal), resulting in
-            # out_char being a zero length string.  out_char is used as a
-            # validation in checking whether to output when reading strings
-            # so I've separated the output checks into hex_output and
-            # not hex_output blocks
             if hex_output:
                 if not quiet:
                     outputfd.write("%02X " % ord(x))
