@@ -155,8 +155,9 @@ Options:
                            set a base time.  Time values for lines after the
                            line matching the pattern will be relative to
                            this base time.
-    -i, --inlinepat=<pat>  Specify a regular expression pattern to have its
-                           time reported at end of run.  It works mid-line.
+    -i, --inlinepat=<pat>  Specify one (or more) regular expression pattern to
+                           have its time reported at end of run.  It works
+                           mid-line.
     -q, --quitpat=<pat>    Specify a regular expression pattern to end the
                            program.  It works mid-line.
     -l, --launchtime       Set base time from launch of program.
@@ -392,10 +393,10 @@ def grab(arglist, outputfd=sys.stdout):
     show_time = 0
     show_systime = 0
     basepat = ""
-    inlinepat = ''
+    inlinepat = []
     quitpat = ''
     basetime = 0
-    inlinetime = None
+    inlinetime = dict()
     endtime = 0
     out_filename = None
     out = None
@@ -492,7 +493,7 @@ Use 'grabserial -h' for usage help."""
             basepat = arg
         if opt in ["-i", "--inlinepat", "--instantpat"]:
             # --instantpat is supported for backwards compatibility
-            inlinepat = arg
+            inlinepat.append(arg)
         if opt in ["-q", "--quitpat"]:
             quitpat = arg
         if opt in ["-l", "--launchtime"]:
@@ -866,10 +867,9 @@ Use 'grabserial -h' for usage help."""
                 out.write(x)
 
             # watch for patterns
-            if inlinepat and not inlinetime and \
-                    re.search(inlinepat, curline):
-                # inlinepat is in curline:
-                inlinetime = time.time()
+            for i in inlinepat:
+                if re.search(i, curline):
+                    inlinetime[i] = time.time() - basetime
 
             # Exit the loop if quitpat matches
             if quitpat and re.search(quitpat, curline):
@@ -942,9 +942,10 @@ Use 'grabserial -h' for usage help."""
 
     sd.close()
     if inlinetime:
-        inlinetime_str = '%4.6f' % (inlinetime-basetime)
-        msg = u'\nThe inlinepat: "%s" was matched at %s\n' % \
-            (inlinepat, inlinetime_str)
+        msg = "\n\n"
+        for i in inlinetime:
+            msg += 'The inlinepat: "%s" was matched at %4.6f\n' % \
+                    (i, inlinetime[i])
         if not quiet:
             outputfd.write(msg)
             outputfd.flush()
