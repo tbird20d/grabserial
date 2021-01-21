@@ -656,6 +656,7 @@ Use 'grabserial -h' for usage help."""
     curline = ""
     xline = b""
     outline_bytecount = 0
+    hex_waitfornewdata = True
     vprint("Use Control-C to stop...")
 
     try:
@@ -733,6 +734,24 @@ Use 'grabserial -h' for usage help."""
 
             # if we didn't read anything, loop
             if len(x) == 0:
+                # if we're outputing hex and we're waiting for new data
+                # (serial timeout), consider it the end of the transmission
+                # sequence.  End the current output line, prepare for a 
+                # a new line... and then loop
+                if hex_output and not hex_waitfornewdata:
+                    if not quiet:
+                        outputfd.write("\n")
+                    if out:
+                        out.write(b"\n")
+                    newline = 1
+                    if basepat and re.match(basepat, curline):
+                        basetime = linetime
+                        elapsed = 0
+                        prev1 = 0
+                    curline = ""
+                    xline = b""
+                    outline_bytecount = 0
+                    hex_waitfornewdata = True
                 continue
 
             # convert carriage returns to newlines.
@@ -869,6 +888,7 @@ Use 'grabserial -h' for usage help."""
 
             # hex_output uses the byte 'x' rather than the string 'out_char'
             if hex_output:
+                hex_waitfornewdata = False
                 outline_bytecount += 1
                 outputstring = "%02X " % ord(x)
                 if not quiet:
@@ -909,12 +929,13 @@ Use 'grabserial -h' for usage help."""
                     or (hex_output and outline_bytecount >= max_bytes_per_line):
                 newline = 1
                 if basepat and re.match(basepat, curline):
-                    basetime = linetime
-                    elapsed = 0
-                    prev1 = 0
+                   basetime = linetime
+                   elapsed = 0
+                   prev1 = 0
                 curline = ""
                 xline = b""
                 outline_bytecount = 0
+                hex_waitfornewdata = True
 
             sys.stdout.flush()
             if out:
