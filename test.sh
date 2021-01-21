@@ -101,4 +101,15 @@ python3 ./grabserial  -v -S -d ${console_dev} -e 120 -t -o graboutput4.log
 
 echo
 
+echo "==================================="
+echo "Testing with python 2"
+echo "  60 second grab, stopping when 'login' is seen, with hex output"
+echo "==================================="
+
+# do the reboot after grabserial is started
+(sleep 1 ; ttc reboot bbb) &
+
+# same as first test, but this time with --hex-output
+./grabserial  -v -S -d ${console_dev} -e 60 -t -m "Starting kernel" -i "FAQ" -q "login" --hex-output -o graboutput.log
+
 echo "Done in test.sh"
