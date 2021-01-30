@@ -399,7 +399,7 @@ def grab(arglist, outputfd=sys.stdout):
     show_time = 0
     show_systime = 0
     basepat = ""
-    inlinepat = []
+    inlinepats = []
     quitpat = ''
     basetime = 0
     inlinetime = dict()
@@ -501,7 +501,7 @@ Use 'grabserial -h' for usage help."""
             basepat = arg
         if opt in ["-i", "--inlinepat", "--instantpat"]:
             # --instantpat is supported for backwards compatibility
-            inlinepat.append(arg)
+            inlinepats.append(arg)
         if opt in ["-q", "--quitpat"]:
             quitpat = arg
         if opt in ["-l", "--launchtime"]:
@@ -616,9 +616,9 @@ Use 'grabserial -h' for usage help."""
         vprint("Printing absolute timing information for each line")
     if basepat:
         vprint("Using pattern '%s' to set base time" % basepat)
-    if inlinepat:
-        vprint("Using inline pattern '%s' to report time of at end of run"
-               % inlinepat)
+    if inlinepats:
+        vprint("Using inline pattern(s) '%s' to report time of at end of run"
+               % inlinepats)
     if quitpat and not restart:
         vprint("Using pattern '%s' to exit program" % quitpat)
     if quitpat and restart:
@@ -895,9 +895,9 @@ Use 'grabserial -h' for usage help."""
                     out.write(x)
 
             # watch for patterns
-            for i in inlinepat:
-                if re.search(i, curline):
-                    inlinetime[i] = time.time() - basetime
+            for pat in inlinepats:
+                if re.search(pat, curline):
+                    inlinetime[pat] = time.time() - basetime
 
             # Exit the loop if quitpat matches
             if quitpat and re.search(quitpat, curline):
@@ -973,9 +973,9 @@ Use 'grabserial -h' for usage help."""
     sd.close()
     if inlinetime:
         msg = "\n\n"
-        for i in inlinetime:
+        for pat in inlinetime:
             msg += 'The inlinepat: "%s" was matched at %4.6f\n' % \
-                    (i, inlinetime[i])
+                    (pat, inlinetime[pat])
         if not quiet:
             outputfd.write(msg)
             outputfd.flush()
