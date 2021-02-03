@@ -23,6 +23,8 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2021.01.12 - Version 2.1.5
+#   - fixed issue with possibly flushing the wrong output file
 #  2021.01.12 - Version 2.1.4
 #   - add support for hex output
 #  2020.05.22 - Version 2.1.3
@@ -211,7 +213,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 4)
+VERSION = (2, 1, 5)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -916,7 +918,7 @@ Use 'grabserial -h' for usage help."""
                 xline = b""
                 outline_bytecount = 0
 
-            sys.stdout.flush()
+            outputfd.flush()
             if out:
                 out.flush()
                 # check for log rotation
