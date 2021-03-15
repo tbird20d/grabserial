@@ -738,6 +738,10 @@ Use 'grabserial -h' for usage help."""
             if len(x) == 0:
                 continue
 
+            # ignore STX and ETX control characters
+            if x == '\002' or x == '\003':
+                continue
+
             # convert carriage returns to newlines.
             if x == b"\r" and not hex_output:
                 if cr_to_nl:
