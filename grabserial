@@ -739,7 +739,7 @@ Use 'grabserial -h' for usage help."""
                 continue
 
             # ignore STX and ETX control characters
-            if x == '\002' or x == '\003':
+            if ord(x) == 2 or ord(x) == 3:
                 continue
 
             # convert carriage returns to newlines.
