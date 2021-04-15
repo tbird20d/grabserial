@@ -153,3 +153,101 @@ Sep 09 08:51:12 myhostname GrabSerial[11475]: Use Control-C to stop...
 We now have grabserial running as a service.  It will start on system boot-up if and when the device is present.  It will stop the service if the device is removed.
 
 ---
+
+### Addendum: Support for multiple identical serial devices
+
+In the above example, systemd automatically creates device units for each serial device plugged in. These names contain the device path in addition to the allocated tty device name. Plugging the serial adapter into a different USB port or plugging in multiple serial adapters in different sequences will generate different unit names. A custom udev rule can be used to provide a custom systemd unit alias to work around this problem, making it possible to watch for any device plugged into a specific port or a specific device plugged into any port. This addendum focusses on the former use case, but shouldn't be difficult to adapt to the latter.
+
+Use this command to view the udev device attributes for one of your serial adapters. These attributes can be used in the udev rule to target the correct devices.
+
+```
+udevadm info -a -n /dev/ttyUSB0
+```
+
+Create a new udev rules file:
+
+```
+sudo vi /etc/udev/rules.d/99-usb-serial.rules
+```
+
+and add something like this:
+
+```
+ACTION=="add", SUBSYSTEM=="tty", SUBSYSTEMS=="usb", DRIVERS=="usb", SYMLINK+="tty.usb-$attr{devpath}", TAG+="systemd", ENV{SYSTEMD_ALIAS}="/sys/subsystem/usb/devices/usb-serial-$attr{devpath}"
+```
+
+ * `ACTION=="add"`: When a device is added.
+ * `SUBSYSTEM=="tty"`: And the device is in the TTY subsystem.
+ * `SUBSYSTEMS=="usb"`: And one of the device's parents is in the USB subsystem.
+ * `DRIVERS=="usb"`: And one of the device's parents is using the USB driver.
+ * `SYMLINK+="..."`: Create a new device symlink that includes the USB device path in the name (e.g. `/dev/tty.usb-1.2`).
+ * `TAG+="systemd"`: Make sure systemd is aware of this device.
+ * `ENV{SYSTEMD_ALIAS}="..."`: Create a new systemd unit name alias. It's not clear what constitutes a valid path, but `/dev/...` didn't work for me and there were several other SYSTEMD_ALIASes roughly matching this pattern.
+
+Tell udev to reload its rules:
+
+```
+sudo udevadm trigger
+```
+
+This udev rule will create a USB port-specific device symlink for each serial adapter. For example, with three serial adapters plugged into my Raspberry Pi, I get three port-specific device symlinks:
+
+```
+$ ls -l /dev/*usb*
+lrwxrwxrwx 1 root root 7 Apr 14 04:52 /dev/tty.usb-1.2 -> ttyUSB1
+lrwxrwxrwx 1 root root 7 Apr 14 04:51 /dev/tty.usb-1.3 -> ttyUSB0
+lrwxrwxrwx 1 root root 7 Apr 14 04:53 /dev/tty.usb-1.4 -> ttyUSB2
+```
+
+If they're plugged into the Pi in a different sequence, they'll get different `/dev/ttyUSBx` paths, but `/dev/tty.usb-1.2` will always point to whichever one is plugged into port number 2, etc.
+
+In addition to the default systemd device unit which includes the full device path, it now also generates a custom systemd device unit alias which can be used in the systemd service as described above.
+
+```
+$ sudo systemctl | grep -i '1.2' | awk '{print $1}'
+sys-devices-platform-soc-3f980000.usb-usb1-1\x2d1-1\x2d1.2-1\x2d1.2:1.0-ttyUSB1-tty-ttyUSB1.device
+sys-subsystem-usb-devices-usb\x2dserial\x2d1.2.device
+```
+
+I created a service template. A service template contains an `@` symbol at the end of the filename and any `%i` tokens will be replaced by whatever follows the `@` symbol when the service is instantiated. Here, the `%i` is used as a variable for the USB port identifier.
+
+```
+$ cat /etc/systemd/system/seriallog@.service
+[Unit]
+Description=Serial Log Service %I
+After=sys-subsystem-usb-devices-usb\x2dserial\x2d%i.device
+BindsTo=sys-subsystem-usb-devices-usb\x2dserial\x2d%i.device
+
+[Service]
+Type=simple
+GuessMainPID=no
+KillMode=process
+Environment=PYTHONIOENCODING=utf-8
+ExecStart=/usr/local/bin/grabserial --verbose --quiet -d /dev/tty.usb-%i --output="/var/grabserial/serial%i-%%Y-%%m-%%d_%%H-%%M-%%S.log"
+TimeoutSec=2
+Restart=on-failure
+RestartPreventExitStatus=2 3
+StandardInput=null
+StandardOutput=syslog
+StandardError=syslog+console
+SyslogIdentifier=GrabSerial
+User=grabserial
+Group=grabserial
+SupplementaryGroups=dialout
+PermissionsStartOnly=true
+
+[Install]
+WantedBy=sys-subsystem-usb-devices-usb\x2dserial\x2d%i.device
+WantedBy=multi-user.target
+```
+
+The service template can then be used to create a service instance for each port:
+
+```
+sudo systemctl enable seriallog@1.2.service
+sudo systemctl enable seriallog@1.3.service
+```
+
+With this configuration, each serial adapter will log to its own deterministic log file.
+
+---
