@@ -23,6 +23,8 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2021.01.13 - Version 2.1.6
+#   - make it so that --nodelta applies to regular timing as well
 #  2021.01.12 - Version 2.1.5
 #   - fixed issue with possibly flushing the wrong output file
 #  2021.01.12 - Version 2.1.4
@@ -213,7 +215,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 5)
+VERSION = (2, 1, 6)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -770,8 +772,11 @@ Use 'grabserial -h' for usage help."""
             if show_time and newline:
                 linetime = time.time()
                 elapsed = linetime-basetime
-                delta = elapsed-prev1
-                msg = "[%4.6f %2.6f] " % (elapsed, delta)
+                if use_delta:
+                    delta = elapsed-prev1
+                    msg = "[%4.6f %2.6f] " % (elapsed, delta)
+                else:
+                    msg = "[%4.6f] " % elapsed
                 if not quiet:
                     if outputfd:
                         outputfd.write(msg)
