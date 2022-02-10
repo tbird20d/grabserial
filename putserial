@@ -188,7 +188,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "crtonewline",
                 "command-mode",
             ])
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         # print help info and exit
         eprint("Error parsing command line options:")
         eprint(str(err))
