@@ -51,6 +51,48 @@ Start a continous recording with timestamps for each line (-T)
 (eg: `[09:07:47.330944 0.007000]`) and create a new file with
 timestamp `%Y-%m-%dT%H-%M-%S` at the specified location every hour (-R).
 
+Inline Pattern Matching
+-----------------------
+Grabserial allows to match patterns on single lines, and provides a report of
+all matches on exit.
+
+Many inline patterns can be passed in as follows
+
+    $ grabserial -d /dev/ttyUSB0 -e 30 -t \
+        -m "Linux version.*" \
+	-i '.*gpio: pin .*' \
+	-i '.*Starting kernel.*' \
+	-q ".* login$" 
+    ...
+    The inlinepat: ".*gpio: pin .*" was matched at 0.074521
+    The inlinepat: ".*Starting kernel.*" was matched at 0.092860
+
+The match summary can be customized using the patstr option.
+This takes a Python format string with named arguments, the default value for
+patstr is:
+
+    The inlinepat: "{pattern}" was matched at {time:4.6f}
+
+Default named arguments are:
+- `pattern`: the regular expression to match as passed through --inlinepat
+- `match`: the string matched by the regular expression
+- `time`: the time at which the match appeared
+
+Additional named arguments are supported and require the use of named groups
+within the inlinepat regular expression.
+
+Example:
+
+    $ grabserial -d /dev/ttyUSB0 -e 30 -t \
+        -m "Linux version.*" \
+	-i '^The IP Address for (?P<iface>\w*\d) is: (?P<addr>.*)$' \
+	--patstr '{time:4.6f}: {iface} is {addr}' \
+	-q ".* login$" 
+    ...
+
+    0.150131: eth0 is 10.0.1.74
+    0.151606: usb0 is 192.168.7.2
+
 Notice - New Default ‘-o’ Behavior
 ----------------------------------
 Using the '-o' option, as in the second example above, with a generic '%'
