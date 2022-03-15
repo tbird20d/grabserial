@@ -106,3 +106,19 @@ output files**; one with the date and time it was started and another with
 the date and time that the program first outputs data after the system
 time passes midnight.
 
+Loopback Testing
+----------------
+socat can be used to emulate a serial console for testing purposes:
+
+1. Start socat to create 2 virtual tty devices:
+
+	$ socat PTY,link=./virtual-tty-in,raw,echo=0 PTY,link=./virtual-tty-out,raw,echo=0
+
+2. Connect grabserial to ./virtual-tty-out, and setup test options
+
+	$ ./grabserial -S -d ./virtual-tty-out -q '.* login$' 
+
+3. Stream data to grabserial
+
+	$ cat console.raw > ./virtual-tty-in
+
