@@ -409,7 +409,7 @@ def grab(arglist, outputfd=sys.stdout):
     inlinepats = []
     quitpat = ''
     basetime = 0
-    inlinetime = dict()
+    inlinetime = list()
     patstr = 'The inlinepat: "{pattern}" was matched at {time:4.6f}'
     endtime = 0
     out_filename = None
@@ -907,17 +907,6 @@ Use 'grabserial -h' for usage help."""
                     # (ie there is no 'decode' here)
                     out.write(x)
 
-            # watch for patterns
-            for pat in inlinepats:
-                m = re.search(pat, curline)
-                if m:
-                    inlinetime[pat] = m.groupdict()
-                    inlinetime[pat].update({
-                        "pattern": pat,
-                        "match": m.group(),
-                        "time": time.time() - basetime,
-                    })
-
             # Exit the loop if quitpat matches
             if quitpat and re.search(quitpat, curline):
                 stop_reason = "grabserial stopped because quit pattern '" + \
@@ -927,6 +916,19 @@ Use 'grabserial -h' for usage help."""
             if (x == b"\n" and not hex_output) \
                     or (hex_output and outline_bytecount >= max_bytes_per_line):
                 newline = 1
+
+                # watch for patterns
+                for pat in inlinepats:
+                    m = re.search(pat, curline)
+                    if m:
+                        _match = m.groupdict()
+                        _match.update({
+                            "pattern": pat,
+                            "match": m.group(),
+                            "time": time.time() - basetime,
+                        })
+                        inlinetime.append(_match)
+
                 if basepat and re.match(basepat, curline):
                     basetime = linetime
                     elapsed = 0
@@ -1000,7 +1002,7 @@ Use 'grabserial -h' for usage help."""
                 for key in string.Formatter().parse(patstr)
                 if key[1] is not None
             }
-            patstr_keys.update(inlinetime[pat])
+            patstr_keys.update(pat)
             msg += patstr.format(**patstr_keys) + "\n"
 
         if not quiet:
