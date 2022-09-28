@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # vim: set ts=4 sw=4 et :
+# pylint: disable=C0302
 #
 # grabserial - program to read a serial port and send the data to stdout
 #
@@ -225,8 +226,7 @@ def str_to_bool(value):
     """Convert string to python boolean type"""
     if value.lower() == "false" or value == "0":
         return False
-    else:
-        return True
+    return True
 
 
 def vprint(message):
@@ -251,8 +251,9 @@ def device_exists(device):
     """Check that the specified serial device exists."""
     if os.path.islink(device):
         device = os.path.realpath(device)
+
     try:
-        from serial.tools import list_ports
+        from serial.tools import list_ports   # pylint: disable=C0415
 
         for port in list_ports.comports():
             if port[0] == device:
@@ -275,6 +276,7 @@ def read_input():
             try:
                 # raw_input in python 2.x returns byte string
                 # decode to unicode
+                # pylint: disable=E0602
                 cmdinput = raw_input().decode(sys.stdin.encoding)
             except EOFError:
                 # if we're piping input, we want to stop trying to read
@@ -285,7 +287,7 @@ def read_input():
             # https://www.python.org/dev/peps/pep-3111/
             # input() returns string in unicode already
             try:
-                cmdinput = input()      # pylint: disable=I0011,W0141
+                cmdinput = input()      # pylint: disable=I0011
             except EOFError:
                 break
 
@@ -699,7 +701,7 @@ Use 'grabserial -h' for usage help."""
     # use stdout encoding, or "utf8" for output
     out_encoding = sys.stdout.encoding
     if out_encoding is None:
-        out_encoding = "utf8"  # pylint: disable=I0011,redefined-variable-type
+        out_encoding = "utf8"  # pylint: disable=I0011
 
     stop_reason = "grabserial stopped for an unknown reason"
 
@@ -710,7 +712,8 @@ Use 'grabserial -h' for usage help."""
                 sd.write((cmdinput + u"\n").encode("utf8"))
                 cmdinput = u""
 
-            # read exactly 1 byte (for up to one second, based on timeout set above)
+            # read exactly 1 byte (for up to one second, based on
+            # timeout set above)
             # NOTE: x should be a byte string in both python 2 and 3
             x = sd.read(1)
 
@@ -914,8 +917,8 @@ Use 'grabserial -h' for usage help."""
                     quitpat + "' was found"
                 break
 
-            if (x == b"\n" and not hex_output) \
-                    or (hex_output and outline_bytecount >= max_bytes_per_line):
+            if (x == b"\n" and not hex_output) or \
+                    (hex_output and outline_bytecount >= max_bytes_per_line):
                 newline = 1
                 if basepat and re.match(basepat, curline):
                     basetime = linetime
