@@ -216,7 +216,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 6)
+VERSION = (2, 1, 7)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
