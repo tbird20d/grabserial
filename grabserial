@@ -520,7 +520,8 @@ Use 'grabserial -h' for usage help."""
                 sd.close()
                 sys.exit(3)
         if opt in ["-o", "--output"]:
-            out_pattern = arg
+            out_dirname = os.path.dirname(arg)
+            out_pattern = os.path.basename(arg)
             if out_pattern == "%":
                 if os.name == "posix":
                     out_pattern = "%Y-%m-%d_%H:%M:%S"
@@ -529,6 +530,7 @@ Use 'grabserial -h' for usage help."""
             if "%d" in out_pattern or "%F" in out_pattern:
                 out_filenamehasdate = 1
             out_filename = datetime.datetime.now().strftime(out_pattern)
+            out_filename = os.path.join(out_dirname, out_filename)
 
         if opt in ["-A", "--append"]:
             out_permissions = "a+b"

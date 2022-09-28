@@ -77,6 +77,19 @@ echo "==================================="
 echo "==== Done with grabserial capture ===="
 echo
 
+echo "==================================="
+echo "Testing with python 2"
+echo "  60 second grab, stopping when 'Starting kernel' is seen"
+echo "  using filename '/tmp/%'"
+echo "==================================="
+
+(sleep 1 ; ttc reboot bbb) &
+./grabserial  -v -S -d ${console_dev} -e 60 -t -q "Starting kernel" \
+    -o "/tmp/%"
+
+echo "==== Done with grabserial capture ===="
+echo
+
 echo "Checking for output filename"
 echo
 ls -ltr | grep -v total | grep -v dir_list >dir_list_after.txt
@@ -93,4 +106,12 @@ echo "2020-12-02_22:10:06"
 echo "1606971316.log"
 echo "mylog-2020-12-02_22:10:25.log"
 echo
+
+ls -ltr /tmp | tail -n 2 | grep -v total
+
+echo
+
+echo "Should have 1 new file in /tmp, with a name like:"
+echo "2020-12-02_22:12:07"
+
 echo "Done in test-output-filenames.sh"
