@@ -216,7 +216,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 7)
+VERSION = (2, 1, 8)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -411,6 +411,7 @@ def grab(arglist, outputfd=sys.stdout):
     inlinetime = dict()
     endtime = 0
     out_filename = None
+    out_filepath = None
     out = None
     out_permissions = "wb"
     append = False
@@ -532,7 +533,7 @@ Use 'grabserial -h' for usage help."""
             if "%d" in out_pattern or "%F" in out_pattern:
                 out_filenamehasdate = 1
             out_filename = datetime.datetime.now().strftime(out_pattern)
-            out_filename = os.path.join(out_dirname, out_filename)
+            out_filepath = os.path.join(out_dirname, out_filename)
 
         if opt in ["-A", "--append"]:
             out_permissions = "a+b"
@@ -633,23 +634,23 @@ Use 'grabserial -h' for usage help."""
         vprint("Using pattern '%s' to restart program" % quitpat)
     if skip_device_check:
         vprint("Skipping check of serial device")
-    if out_filename:
+    if out_filepath:
         try:
             # open in binary mode, to pass through data as unmodified
             # as possible
-            out = open(out_filename, out_permissions)
+            out = open(out_filepath, out_permissions)
             if out_filenamehasdate:
                 out_opendate = datetime.date.today()
         except IOError:
-            print("Can't open output file '%s'" % out_filename)
+            print("Can't open output file '%s'" % out_filepath)
             sys.exit(1)
         if append:
-            vprint("Appending data to '%s'" % out_filename)
+            vprint("Appending data to '%s'" % out_filepath)
         else:
-            vprint("Saving data to '%s'" % out_filename)
+            vprint("Saving data to '%s'" % out_filepath)
 
     if rotate_time:
-        if out_filename:
+        if out_filepath:
             vprint("Rotate output file every %s seconds" % rotate_interval)
         else:
             eprint("Error: Missing output filename")
@@ -727,15 +728,16 @@ Use 'grabserial -h' for usage help."""
                 vprint("Time for log rotation at %s" %
                        datetime.datetime.now().strftime("%H:%M:%S.%f"))
 
-                vprint("Closing output file: '%s'" % out_filename)
+                vprint("Closing output file: '%s'" % out_filepath)
                 out.close()
                 out_filename = datetime.datetime.now().strftime(out_pattern)
-                vprint("Opening new output file: '%s'" % out_filename)
+                out_filepath = os.path.join(out_dirname, out_filename)
+                vprint("Opening new output file: '%s'" % out_filepath)
                 try:
-                    out = open(out_filename, out_permissions)
+                    out = open(out_filepath, out_permissions)
                     out_opendate = datetime.date.today()
                 except IOError:
-                    print("Can't open output file '%s'" % out_filename)
+                    print("Can't open output file '%s'" % out_filepath)
                     sys.exit(1)
 
                 # set up for next rotation
@@ -758,20 +760,21 @@ Use 'grabserial -h' for usage help."""
 
             # if outputting data to a file with a date in its name and the
             # date has changed, then close it and open a new file.
-            if (out_filename
+            if (out_filepath
                     and out_filenamehasdate
                     and newline
                     and datetime.date.today() > out_opendate
                     and not endtime):
-                vprint("Closing output file: '%s'" % out_filename)
+                vprint("Closing output file: '%s'" % out_filepath)
                 out.close()
                 out_filename = datetime.datetime.now().strftime(out_pattern)
-                vprint("Opening new output file: '%s'" % out_filename)
+                out_filepath = os.path.join(out_dirname, out_filename)
+                vprint("Opening new output file: '%s'" % out_filepath)
                 try:
-                    out = open(out_filename, out_permissions)
+                    out = open(out_filepath, out_permissions)
                     out_opendate = datetime.date.today()
                 except IOError:
-                    print("Can't open output file '%s'" % out_filename)
+                    print("Can't open output file '%s'" % out_filepath)
                     sys.exit(1)
 
             if show_time and newline:
@@ -936,16 +939,17 @@ Use 'grabserial -h' for usage help."""
                     vprint("Time for log rotation at %s" %
                            datetime.datetime.now().strftime("%H:%M:%S.%f"))
 
-                    vprint("Closing output file: '%s'" % out_filename)
+                    vprint("Closing output file: '%s'" % out_filepath)
                     out.close()
                     out_filename = \
                         datetime.datetime.now().strftime(out_pattern)
-                    vprint("Opening new output file: '%s'" % out_filename)
+                    out_filepath = os.path.join(out_dirname, out_filename)
+                    vprint("Opening new output file: '%s'" % out_filepath)
                     try:
-                        out = open(out_filename, out_permissions)
+                        out = open(out_filepath, out_permissions)
                         out_opendate = datetime.date.today()
                     except IOError:
-                        print("Can't open output file '%s'" % out_filename)
+                        print("Can't open output file '%s'" % out_filepath)
                         sys.exit(1)
 
                     # set up for next rotation
