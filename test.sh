@@ -3,12 +3,14 @@
 # For pylint-related info, see:
 #    https://jeffknupp.com/blog/2016/12/09/how-python-linters-will-save-your-large-python-project/
 
+BOARD=bbb
 if [ -n "$1" ] ; then
     if [ "$1" = "-h" ] ; then
         echo "Usage: test.sh [options]"
-        echo " -h  Show this usage help"
-        echo " -f  Do 'flake8' test of grabserial syntax"
-        echo " -l  Do 'pylint' test of grabserial source"
+        echo " -h          Show this usage help"
+        echo " -f          Do 'flake8' test of grabserial syntax"
+        echo " -l          Do 'pylint' test of grabserial source"
+        echo " -b <board>  Do tests on board <board> (default is 'bbb')"
         echo ""
         echo "By default (with no arguments), test.sh will run 2 tests on"
         echo "the board 'bbb' (using the ttc command) using the default"
@@ -35,6 +37,11 @@ if [ -n "$1" ] ; then
         pylint --disable=C0325,R0912,R0914,R0915, --good-names=dt,sd,x grabserial
         exit $?
     fi
+    if [ "$1" = "-b" ] ; then
+        shift
+        BOARD=$1
+        shift
+    fi
 fi
 
 if [ -n "$1" ] ; then
@@ -43,22 +50,22 @@ if [ -n "$1" ] ; then
     exit 0
 fi
 
-echo "Running grabserial on target 'bbb'"
+echo "Running grabserial on target '$BOARD'"
 
-# get the console device for target 'bbb'
-console_dev="$(ttc info bbb -n console_dev)"
+# get the console device for target board
+console_dev="$(ttc info $BOARD -n console_dev)"
 
 
-# Also, use ttc to reboot bbb
+# Also, use ttc to reboot board
 
-# use ttc to reboot my beaglebone black
+# use ttc to reboot the requested board
 echo "==================================="
 echo "Testing with python 2"
 echo "  60 second grab, stopping when 'login' is seen"
 echo "==================================="
 
 # do the reboot after grabserial is started
-(sleep 1 ; ttc reboot bbb) &
+(sleep 1 ; ttc reboot $BOARD) &
 
 # grab data from from that console device (-d ${console_dev},
 #    skipping the serial port sanity check (-S)
@@ -75,7 +82,7 @@ echo "Testing with python 2"
 echo "  120 second grab, try logging in (test user input to serial port)"
 echo "==================================="
 
-(sleep 1 ; ttc reboot bbb) &
+(sleep 1 ; ttc reboot $BOARD) &
 
 # run for two minutes, allowing user to login (using threaded input)
 ./grabserial  -v -S -d ${console_dev} -e 120 -t -o graboutput2.log
@@ -86,7 +93,7 @@ echo "==================================="
 echo "Testing with python 3"
 echo "  60 second grab, stopping when 'login' is seen"
 echo "==================================="
-(sleep 1 ; ttc reboot bbb) &
+(sleep 1 ; ttc reboot $BOARD) &
 
 python3 ./grabserial  -v -S -d ${console_dev} -e 60 -t -m "Starting kernel" -i "FAQ" -q "login" -o graboutput3.log
 
@@ -96,7 +103,7 @@ echo "==================================="
 echo "Testing with python 3"
 echo "  120 second grab, try logging in (test user input to serial port)"
 echo "==================================="
-(sleep 1 ; ttc reboot bbb) &
+(sleep 1 ; ttc reboot $BOARD) &
 python3 ./grabserial  -v -S -d ${console_dev} -e 120 -t -o graboutput4.log
 
 echo
@@ -107,7 +114,7 @@ echo "  60 second grab, stopping when 'login' is seen, with hex output"
 echo "==================================="
 
 # do the reboot after grabserial is started
-(sleep 1 ; ttc reboot bbb) &
+(sleep 1 ; ttc reboot $BOARD) &
 
 # same as first test, but this time with --hex-output
 ./grabserial  -v -S -d ${console_dev} -e 60 -t -m "Starting kernel" -i "FAQ" -q "login" --hex-output -o graboutput.log

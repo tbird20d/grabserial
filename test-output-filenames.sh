@@ -3,14 +3,23 @@
 # test-output-filenames.sh
 #
 
+BOARD=bbb
+
 if [ -n "$1" ] ; then
     if [ "$1" = "-h" ] ; then
         echo "Usage: test-output-filenames.sh [options]"
-        echo " -h  Show this usage help"
+        echo " -h          Show this usage help"
+        echo " -b <board>  Perform test using specified board."
+        echo "             (Defaults to 'bbb')"
         echo ""
         echo "Test different output filenames"
         echo ""
         exit 0
+    fi
+    if [ "$1" = "-b" ] ; then
+        shift
+        BOARD=$1
+        shift
     fi
 fi
 
@@ -20,14 +29,14 @@ if [ -n "$1" ] ; then
     exit 0
 fi
 
-echo "Running grabserial on target 'bbb'"
+echo "Running grabserial on target '$BOARD'"
 
-# get the console device for target 'bbb'
-console_dev="$(ttc info bbb -n console_dev)"
+# get the console device for target board
+console_dev="$(ttc info $BOARD -n console_dev)"
 
 ls -ltr | grep -v total | grep -v dir_list >dir_list_before.txt
 
-# Also, use ttc to reboot bbb
+# Also, use ttc to reboot board
 
 # use ttc to reboot my beaglebone black
 echo "==================================="
@@ -37,7 +46,7 @@ echo "  using filename '%'"
 echo "==================================="
 
 # do the reboot after grabserial is started
-(sleep 1 ; ttc reboot bbb) &
+(sleep 1 ; ttc reboot $BOARD) &
 
 # grab data from from that console device (-d ${console_dev},
 #    skipping the serial port sanity check (-S)
@@ -57,7 +66,7 @@ echo "  60 second grab, stopping when 'Starting kernel' is seen"
 echo "  using filename '%s.log'"
 echo "==================================="
 
-(sleep 1 ; ttc reboot bbb) &
+(sleep 1 ; ttc reboot $BOARD) &
 ./grabserial  -v -S -d ${console_dev} -e 60 -t -q "Starting kernel" \
     -o %s.log
 
@@ -70,7 +79,7 @@ echo "  60 second grab, stopping when 'Starting kernel' is seen"
 echo "  using filename 'mylog-%F_%T.log'"
 echo "==================================="
 
-(sleep 1 ; ttc reboot bbb) &
+(sleep 1 ; ttc reboot $BOARD) &
 ./grabserial  -v -S -d ${console_dev} -e 60 -t -q "Starting kernel" \
     -o mylog-%F_%T.log
 
@@ -79,12 +88,12 @@ echo
 
 echo "==================================="
 echo "Testing with python 2"
-echo "  60 second grab, stopping when 'Starting kernel' is seen"
-echo "  using filename '/tmp/%'"
+echo "  120 second grab"
+echo "  using filename '/tmp/%'", with 20-second log rotations
 echo "==================================="
 
-(sleep 1 ; ttc reboot bbb) &
-./grabserial  -v -S -d ${console_dev} -e 60 -t -q "Starting kernel" \
+(sleep 1 ; ttc reboot $BOARD) &
+./grabserial  -v -S -d ${console_dev} -e 120 -t  -R 20s \
     -o "/tmp/%"
 
 echo "==== Done with grabserial capture ===="
