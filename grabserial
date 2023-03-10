@@ -533,6 +533,7 @@ Use 'grabserial -h' for usage help."""
             if "%d" in out_pattern or "%F" in out_pattern:
                 out_filenamehasdate = 1
             out_filename = datetime.datetime.now().strftime(out_pattern)
+            out_dirname = datetime.datetime.now().strftime(out_dirname)
             out_filepath = os.path.join(out_dirname, out_filename)
 
         if opt in ["-A", "--append"]:
@@ -731,6 +732,7 @@ Use 'grabserial -h' for usage help."""
                 vprint("Closing output file: '%s'" % out_filepath)
                 out.close()
                 out_filename = datetime.datetime.now().strftime(out_pattern)
+                out_dirname = datetime.datetime.now().strftime(out_dirname)
                 out_filepath = os.path.join(out_dirname, out_filename)
                 vprint("Opening new output file: '%s'" % out_filepath)
                 try:
@@ -768,6 +770,7 @@ Use 'grabserial -h' for usage help."""
                 vprint("Closing output file: '%s'" % out_filepath)
                 out.close()
                 out_filename = datetime.datetime.now().strftime(out_pattern)
+                out_dirname = datetime.datetime.now().strftime(out_dirname)
                 out_filepath = os.path.join(out_dirname, out_filename)
                 vprint("Opening new output file: '%s'" % out_filepath)
                 try:
@@ -943,6 +946,7 @@ Use 'grabserial -h' for usage help."""
                     out.close()
                     out_filename = \
                         datetime.datetime.now().strftime(out_pattern)
+                    out_dirname = datetime.datetime.now().strftime(out_dirname)
                     out_filepath = os.path.join(out_dirname, out_filename)
                     vprint("Opening new output file: '%s'" % out_filepath)
                     try:
