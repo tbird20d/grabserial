@@ -194,6 +194,9 @@ Options:
     --hex-output           Show data as hexadecimal codes, instead of
                            characters.  Also output the data as hexadecimal
                            codes to the output file.
+    --hex-ascii            Show data as hexadecimal codes and ascii characters.  
+                           Also output the data as hexadecimal codes and ascii
+                           characters to the output file.                           
 
 Ex: grabserial -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
@@ -216,7 +219,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 8)
+VERSION = (2, 1, 9)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -380,6 +383,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "command-mode",
                 "split-lines",
                 "hex-output",
+                "hex-ascii",
             ])
     except getopt.GetoptError as err:
         # print help info and exit
@@ -428,6 +432,7 @@ def grab(arglist, outputfd=sys.stdout):
     use_delta = True
     out_filenamehasdate = 0
     hex_output = False
+    hex_ascii = False
     max_bytes_per_line = 16
 
     for opt, arg in opts:
@@ -581,6 +586,8 @@ Use 'grabserial -h' for usage help."""
             cr_to_nl = 1
         if opt in ["--hex-output"]:
             hex_output = True
+        if opt in ["--hex-ascii"]:
+            hex_ascii = True            
 
     if args:
         eprint("Error: unrecognized argument '%s'" % args[0])
@@ -884,20 +891,26 @@ Use 'grabserial -h' for usage help."""
                         quit_index = 0
 
             # hex_output uses the byte 'x' rather than the string 'out_char'
-            if hex_output:
+            if hex_output or hex_ascii:
                 outline_bytecount += 1
                 outputstring = "%02X " % ord(x)
                 if not quiet:
                     # outputfd.write wants a string
                     outputfd.write(outputstring)
                     if outline_bytecount >= max_bytes_per_line:
-                        outputfd.write("\n")
+                        if hex_ascii: 
+                            x = b"\n"
+                            curline += '\n' 
+                        else: outputfd.write("\n")
 
                 if out:
                     # out.write wants a byte object, so we encode
                     out.write(outputstring.encode("utf8"))
                     if outline_bytecount >= max_bytes_per_line:
-                        out.write(b"\n")
+                        if hex_ascii: 
+                            x = b"\n"
+                            if quiet: curline += '\n'
+                        else: out.write(b"\n")
             else:
                 # FIXTHIS - should I buffer the output here??
                 if not quiet and out_char:
@@ -921,7 +934,11 @@ Use 'grabserial -h' for usage help."""
                 break
 
             if (x == b"\n" and not hex_output) or \
-                    (hex_output and outline_bytecount >= max_bytes_per_line):
+                    ((hex_output) and outline_bytecount >= max_bytes_per_line):
+                if hex_ascii:
+                    if not quiet: outputfd.write('> ' + '\33[96m' + curline + '\33[m')
+                    if out: out.write('> ' +curline)
+                
                 newline = 1
                 if basepat and re.match(basepat, curline):
                     basetime = linetime
