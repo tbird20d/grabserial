@@ -909,7 +909,7 @@ Use 'grabserial -h' for usage help."""
                     # outputfd.write wants a string
                     outputfd.write(outputstring)
                     if outline_bytecount >= max_bytes_per_line:
-                        if hex_ascii: 
+                        if hex_ascii and x != b"\n": 
                             x = b"\n"
                             curline += '\n' 
                         else: outputfd.write("\n")
@@ -918,7 +918,7 @@ Use 'grabserial -h' for usage help."""
                     # out.write wants a byte object, so we encode
                     out.write(outputstring.encode("utf8"))
                     if outline_bytecount >= max_bytes_per_line:
-                        if hex_ascii: 
+                        if hex_ascii and x != b"\n": 
                             x = b"\n"
                             if quiet: curline += '\n'
                         else: out.write(b"\n")
