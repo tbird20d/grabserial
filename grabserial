@@ -196,7 +196,9 @@ Options:
                            codes to the output file.
     --hex-ascii            Show data as hexadecimal codes and ascii characters.  
                            Also output the data as hexadecimal codes and ascii
-                           characters to the output file.                           
+                           characters to the output file.                        
+    --hex-size=<val>       Sets the size for a output hex string. 
+                           Default value is 16.                               
 
 Ex: grabserial -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
@@ -384,6 +386,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "split-lines",
                 "hex-output",
                 "hex-ascii",
+                "hex-size=",
             ])
     except getopt.GetoptError as err:
         # print help info and exit
@@ -587,7 +590,15 @@ Use 'grabserial -h' for usage help."""
         if opt in ["--hex-output"]:
             hex_output = True
         if opt in ["--hex-ascii"]:
-            hex_ascii = True            
+            hex_ascii = True
+        if opt in ["--hex-size"]:
+            try:
+                max_bytes_per_line = int(arg)
+                if max_bytes_per_line < 1: max_bytes_per_line = 16 
+            except ValueError:
+                eprint("Error: invalid hex-size %s specified" % arg)
+                eprint("       Using default value 16")
+                max_bytes_per_line = 16
 
     if args:
         eprint("Error: unrecognized argument '%s'" % args[0])
