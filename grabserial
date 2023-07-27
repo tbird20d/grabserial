@@ -24,6 +24,9 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2023.01.13 - Version 2.1.9
+#   - add --hexascii option, and use of date and time options on log output
+#     directories
 #  2021.01.13 - Version 2.1.6
 #   - make it so that --nodelta applies to regular timing as well
 #  2021.01.12 - Version 2.1.5
@@ -194,11 +197,11 @@ Options:
     --hex-output           Show data as hexadecimal codes, instead of
                            characters.  Also output the data as hexadecimal
                            codes to the output file.
-    --hex-ascii            Show data as hexadecimal codes and ascii characters.  
+    --hex-ascii            Show data as hexadecimal codes and ascii characters.
                            Also output the data as hexadecimal codes and ascii
-                           characters to the output file.                        
-    --hex-size=<val>       Sets the size for a output hex string. 
-                           Default value is 16.                               
+                           characters to the output file.
+    --hex-size=<val>       Sets the size for a output hex string.
+                           Default value is 16.
 
 Ex: grabserial -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
@@ -213,6 +216,7 @@ import getopt
 import time
 import datetime
 import re
+import errno
 
 try:
     import thread
@@ -250,6 +254,16 @@ def usage():
     print("Usage: grabserial -d <device> [options]\n")
     print(__doc__)
     sys.exit(0)
+
+
+def mkdir_p(path):
+    if not path:
+        return
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno != errno.EEXIST or not os.path.isdir(path):
+            raise
 
 
 def device_exists(device):
@@ -542,6 +556,7 @@ Use 'grabserial -h' for usage help."""
                 out_filenamehasdate = 1
             out_filename = datetime.datetime.now().strftime(out_pattern)
             out_dirname = datetime.datetime.now().strftime(out_dirname)
+            mkdir_p(out_dirname)
             out_filepath = os.path.join(out_dirname, out_filename)
 
         if opt in ["-A", "--append"]:
@@ -595,7 +610,7 @@ Use 'grabserial -h' for usage help."""
         if opt in ["--hex-size"]:
             try:
                 max_bytes_per_line = int(arg)
-                if max_bytes_per_line < 1: max_bytes_per_line = 16 
+                if max_bytes_per_line < 1: max_bytes_per_line = 16
             except ValueError:
                 eprint("Error: invalid hex-size %s specified" % arg)
                 eprint("       Using default value 16")
@@ -751,6 +766,7 @@ Use 'grabserial -h' for usage help."""
                 out.close()
                 out_filename = datetime.datetime.now().strftime(out_pattern)
                 out_dirname = datetime.datetime.now().strftime(out_dirname)
+                mkdir_p(out_dirname)
                 out_filepath = os.path.join(out_dirname, out_filename)
                 vprint("Opening new output file: '%s'" % out_filepath)
                 try:
@@ -789,6 +805,7 @@ Use 'grabserial -h' for usage help."""
                 out.close()
                 out_filename = datetime.datetime.now().strftime(out_pattern)
                 out_dirname = datetime.datetime.now().strftime(out_dirname)
+                mkdir_p(out_dirname)
                 out_filepath = os.path.join(out_dirname, out_filename)
                 vprint("Opening new output file: '%s'" % out_filepath)
                 try:
@@ -912,16 +929,16 @@ Use 'grabserial -h' for usage help."""
                     # outputfd.write wants a string
                     outputfd.write(outputstring)
                     if outline_bytecount >= max_bytes_per_line:
-                        if hex_ascii and x != b"\n": 
+                        if hex_ascii and x != b"\n":
                             x = b"\n"
-                            curline += '\n' 
+                            curline += '\n'
                         else: outputfd.write("\n")
 
                 if out:
                     # out.write wants a byte object, so we encode
                     out.write(outputstring.encode("utf8"))
                     if outline_bytecount >= max_bytes_per_line:
-                        if hex_ascii and x != b"\n": 
+                        if hex_ascii and x != b"\n":
                             x = b"\n"
                             if quiet: curline += '\n'
                         else: out.write(b"\n")
@@ -952,7 +969,7 @@ Use 'grabserial -h' for usage help."""
                 if hex_ascii:
                     if not quiet: outputfd.write('> ' + '\33[96m' + curline + '\33[m')
                     if out: out.write('> ' +curline)
-                
+
                 newline = 1
                 if basepat and re.match(basepat, curline):
                     basetime = linetime
@@ -975,6 +992,7 @@ Use 'grabserial -h' for usage help."""
                     out_filename = \
                         datetime.datetime.now().strftime(out_pattern)
                     out_dirname = datetime.datetime.now().strftime(out_dirname)
+                    mkdir_p(out_dirname)
                     out_filepath = os.path.join(out_dirname, out_filename)
                     vprint("Opening new output file: '%s'" % out_filepath)
                     try:

@@ -4,6 +4,7 @@
 #
 
 BOARD=bbb
+DIR_ONLY=
 
 if [ -n "$1" ] ; then
     if [ "$1" = "-h" ] ; then
@@ -11,6 +12,7 @@ if [ -n "$1" ] ; then
         echo " -h          Show this usage help"
         echo " -b <board>  Perform test using specified board."
         echo "             (Defaults to 'bbb')"
+        echo " -d          Run just the directory name test"
         echo ""
         echo "Test different output filenames"
         echo ""
@@ -20,6 +22,10 @@ if [ -n "$1" ] ; then
         shift
         BOARD=$1
         shift
+    fi
+    if [ "$1" = "-d" ] ; then
+        shift
+        DIR_ONLY=1
     fi
 fi
 
@@ -39,6 +45,7 @@ ls -ltr | grep -v total | grep -v dir_list >dir_list_before.txt
 # Also, use ttc to reboot board
 
 # use ttc to reboot my beaglebone black
+if [ -z "$DIR_ONLY" ] ; then
 echo "==================================="
 echo "Testing with python 2"
 echo "  60 second grab, stopping when 'Starting kernel' is seen"
@@ -99,7 +106,23 @@ echo "==================================="
 echo "==== Done with grabserial capture ===="
 echo
 
-echo "Checking for output filename"
+fi
+# end of "if [ -z $DIR_ONLY...
+
+echo "==================================="
+echo "Testing with python 2"
+echo "  60 second grab, stopping when 'Starting kernel' is seen"
+echo "  using filepath '/tmp/%YYYY/%mm/%dd/mylog-%T.log'"
+echo "==================================="
+
+(sleep 1 ; ttc reboot $BOARD) &
+./grabserial  -v -S -d ${console_dev} -e 60 -t -q "Starting kernel" \
+    -o "/tmp/%Y/%m/%d/mylog-%T.log"
+
+echo "==== Done with grabserial capture ===="
+echo
+
+echo "Checking for output filenames"
 echo
 ls -ltr | grep -v total | grep -v dir_list >dir_list_after.txt
 
@@ -118,9 +141,14 @@ echo
 
 ls -ltr /tmp | tail -n 2 | grep -v total
 
+#ls -ltr /tmp/2023/07/26
+
 echo
 
 echo "Should have 1 new file in /tmp, with a name like:"
 echo "2020-12-02_22:12:07"
+
+echo "Should have 1 new file in /tmp/{YYYY}/{mm}/{dd}, like:"
+echo "2023/12/02/mylog_22:12:07.log"
 
 echo "Done in test-output-filenames.sh"
