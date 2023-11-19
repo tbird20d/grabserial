@@ -518,11 +518,9 @@ Use 'grabserial -h' for usage help."""
             force = True
         if opt in ["-t", "--time"]:
             show_time = 1
-            show_systime = 0
         if opt in ["-a", "--again"]:
             restart = True
         if opt in ["-T", "--systime"]:
-            show_time = 0
             show_systime = 1
         if opt in ["-F", "--timeformat"]:
             systime_format = arg
@@ -814,6 +812,30 @@ Use 'grabserial -h' for usage help."""
                 except IOError:
                     print("Can't open output file '%s'" % out_filepath)
                     sys.exit(1)
+
+            if show_time and show_systime and newline:
+                linetime = time.time()
+                linetimestr = datetime.datetime.now().strftime(systime_format)
+                elapsed = linetime-basetime
+                if use_delta:
+                    delta = elapsed-prev1
+                    msg = "[%s %4.6f %2.6f] " % (linetimestr, elapsed, delta)
+                else:
+                    msg = "[%s %4.6f] " % elapsed
+                if not quiet:
+                    if outputfd:
+                        outputfd.write(msg)
+                if out:
+                    try:
+                        out.write(msg.encode(out_encoding))
+                    except UnicodeEncodeError:
+                        try:
+                            out.write(msg.encode("utf8"))
+                        except UnicodeEncodeError:
+                            out.write(msg)
+
+                prev1 = elapsed
+                newline = 0
 
             if show_time and newline:
                 linetime = time.time()
