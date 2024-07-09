@@ -202,6 +202,7 @@ Options:
                            characters to the output file.
     --hex-size=<val>       Sets the size for a output hex string.
                            Default value is 16.
+    --label=<label>        Labels each line with the specified label
 
 Ex: grabserial -e 30 -t -m "^Linux version.*"
 This will grab serial input for 30 seconds, displaying the time for
@@ -401,6 +402,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "hex-output",
                 "hex-ascii",
                 "hex-size=",
+                "label=",
             ])
     except getopt.GetoptError as err:
         # print help info and exit
@@ -451,6 +453,7 @@ def grab(arglist, outputfd=sys.stdout):
     hex_output = False
     hex_ascii = False
     max_bytes_per_line = 16
+    line_label=""
 
     for opt, arg in opts:
         if opt in ["-h", "--help"]:
@@ -613,6 +616,8 @@ Use 'grabserial -h' for usage help."""
                 eprint("Error: invalid hex-size %s specified" % arg)
                 eprint("       Using default value 16")
                 max_bytes_per_line = 16
+        if opt in ["--label"]:
+            line_label = arg
 
     if args:
         eprint("Error: unrecognized argument '%s'" % args[0])
@@ -822,6 +827,8 @@ Use 'grabserial -h' for usage help."""
                     msg = "[%s %4.6f %2.6f] " % (linetimestr, elapsed, delta)
                 else:
                     msg = "[%s %4.6f] " % elapsed
+                if line_label:
+                    msg = line_label + ' ' + msg
                 if not quiet:
                     if outputfd:
                         outputfd.write(msg)
@@ -836,7 +843,6 @@ Use 'grabserial -h' for usage help."""
 
                 prev1 = elapsed
                 newline = 0
-
             if show_time and newline:
                 linetime = time.time()
                 elapsed = linetime-basetime
@@ -845,6 +851,8 @@ Use 'grabserial -h' for usage help."""
                     msg = "[%4.6f %2.6f] " % (elapsed, delta)
                 else:
                     msg = "[%4.6f] " % elapsed
+                if line_label:
+                    msg = line_label + ' ' + msg
                 if not quiet:
                     if outputfd:
                         outputfd.write(msg)
@@ -859,7 +867,6 @@ Use 'grabserial -h' for usage help."""
 
                 prev1 = elapsed
                 newline = 0
-
             if show_systime and newline:
                 linetime = time.time()
                 linetimestr = datetime.datetime.now().strftime(systime_format)
@@ -869,6 +876,8 @@ Use 'grabserial -h' for usage help."""
                     msg = "[%s %2.6f] " % (linetimestr, delta)
                 else:
                     msg = "[%s] " % (linetimestr)
+                if line_label:
+                    msg = line_label + ' ' + msg
                 if not quiet:
                     outputfd.write(msg)
                 if out:
