@@ -62,6 +62,8 @@ console_dev="$(ttc info $BOARD -n console_dev)"
 echo "==================================="
 echo "Testing with python 2"
 echo "  60 second grab, stopping when 'login' is seen"
+echo "  resetting time at "Starting kernel"
+echo "  reporting when 'FAQ' was seen"
 echo "==================================="
 
 # do the reboot after grabserial is started
@@ -75,6 +77,25 @@ echo "==================================="
 # reset the running timer when the string "Starting kernel" is seen (-m ...)
 # show verbose messages (-v)
 ./grabserial  -v -S -d ${console_dev} -e 60 -t -m "Starting kernel" -i "FAQ" -q "login" -o graboutput.log
+
+# use ttc to reboot the requested board
+echo "==================================="
+echo "Testing with python 2"
+echo "  60 second grab, using both -t and -T, stopping when 'login' is seen"
+echo "==================================="
+
+# do the reboot after grabserial is started
+(sleep 1 ; ttc reboot $BOARD) &
+
+# grab data from from that console device (-d ${console_dev},
+#    skipping the serial port sanity check (-S)
+# end either in 60 seconds (-e 60) or when "login" is seen (-q "login")
+# report the time when "FAQ" was seen (-i "FAQ")
+# send data to graboutput.log (-o graboutput.log)
+# reset the running timer when the string "Starting kernel" is seen (-m ...)
+# show verbose messages (-v)
+# show both time (-t) and systime (-T)
+./grabserial  -v -S -d ${console_dev} -e 60 -t -T -m "Starting kernel" -i "FAQ" -q "login" -o graboutput.log
 
 echo
 echo "==================================="

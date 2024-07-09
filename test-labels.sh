@@ -1,6 +1,7 @@
 #!/bin/sh
 #
-# test-one-testcase.sh - grab bootup messages for a target with grabserial
+# test-labels.sh - grab bootup messages for 'bbb' with grabserial
+#  apply the target name as a label to each message line
 #
 # Do the scafolding for executing a single boot test on the 'bbb' board
 # with grabserial.
@@ -34,31 +35,19 @@ echo "Running grabserial on target '$TARGET'"
 # get the console device for target
 console_dev="$(ttc info $TARGET -n console_dev)"
 
-# Also, use ttc to reboot bbb
+# Also, use ttc to reboot target
 
-# use ttc to reboot my target
+# use ttc to reboot the target
 echo "==================================="
 echo "Testing with python 2"
-echo "  60 or 120 second grab, with ... "
+echo "  120 second grab, with hex output"
 echo "==================================="
 
 # do the reboot after grabserial is started
-(sleep 1 ; ttc reboot bbb) &
+(sleep 1 ; ttc reboot $TARGET) &
 
-# test hex-output
-#args="-e 120 -t --hex-output -o graboutput.log"
-
-# try different time encodings (with deltas)
-#args="-e 120 -t -o graboutput.log"
-#args="-e 120 -T -o graboutput.log"
-
-# try different time encodings (without deltas)
-#args="-e 120 -t --nodelta -o graboutput.log"
-#args="-e 120 -T --nodelta -o graboutput.log"
-
-# try with --label
-args="-e 60 -T --nodelta --label=$TARGET -o graboutput.log"
+args="-e 60 -T --nodelta --label=bbb -o graboutput.log"
 
 ./grabserial  -v -S -d ${console_dev} ${args}
 
-echo "Done in test-one-testcase.sh"
+echo "Done in test-labels.sh"
