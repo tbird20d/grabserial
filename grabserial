@@ -843,6 +843,7 @@ Use 'grabserial -h' for usage help."""
 
                 prev1 = elapsed
                 newline = 0
+
             if show_time and newline:
                 linetime = time.time()
                 elapsed = linetime-basetime
@@ -867,6 +868,7 @@ Use 'grabserial -h' for usage help."""
 
                 prev1 = elapsed
                 newline = 0
+
             if show_systime and newline:
                 linetime = time.time()
                 linetimestr = datetime.datetime.now().strftime(systime_format)
