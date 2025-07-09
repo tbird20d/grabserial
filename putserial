@@ -128,6 +128,19 @@ def read_input():
     while 1:
         time.sleep(1)
 
+def endofline():
+    global eol      # pylint: disable=I0011,C0103,W0603
+
+    if eol == "LF":
+        return "\n"
+    elif eol == "CR":
+        return "\r"
+    elif eol == "CRLF":
+        return "\r\n"
+    else:
+        raise ValueError("Invalid end of line argument")
+
+
 
 # grab - main routine to grab a serial port and transfer data to it
 # Also can take an optional file descriptor for where to send the data
@@ -152,12 +165,13 @@ def grab(arglist, outputfd=sys.stdout):
     """
     global verbose      # pylint: disable=I0011,C0103,W0603
     global cmdinput     # pylint: disable=I0011,C0103,W0603
+    global eol          # pylint: disable=I0011,C0103,W0603
 
     # parse the command line options
     try:
         opts, args = getopt.getopt(
             arglist,
-            "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:AQvVq:nSC", [
+            "hli:d:b:B:w:p:s:xrfc:E:taTF:m:e:o:AQvVq:nSC", [
                 "help",
                 "launchtime",
                 "inlinepat=",
@@ -171,6 +185,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "rtscts",
                 "force-reset",
                 "command=",
+                "endofline=",
                 "time",
                 "again",
                 "systime",
@@ -220,6 +235,7 @@ def grab(arglist, outputfd=sys.stdout):
     out_permissions = "wb"
     append = False
     command = ""
+    eol = "LF"
     command_mode = False
     skip_device_check = 0
     cr_to_nl = 0
@@ -281,6 +297,8 @@ Use 'grabserial -h' for usage help."""
             sd.stopbits = stop
         if opt in ["-c", "--command"]:
             command = arg
+        if opt in ["-E", "--endofline"]:
+            eol = arg
         if opt in ["-C", "--command-mode"]:
             command_mode = True
         if opt in ["-x", "--xonxoff"]:
@@ -437,7 +455,7 @@ Use 'grabserial -h' for usage help."""
         sd.flushOutput()
 
         if command:
-            command += u"\n"
+            command += endofline()
             sd.write(command.encode("utf8"))
             sd.flush()
     except serial.serialutil.SerialException:
@@ -456,7 +474,7 @@ Use 'grabserial -h' for usage help."""
     while 1:
         try:
             if cmdinput:
-                sd.write((cmdinput + u"\n").encode("utf8"))
+                sd.write((cmdinput + endofline()).encode("utf8"))
                 cmdinput = u""
 
             # read for up to 1 second
