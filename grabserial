@@ -24,6 +24,8 @@
 #  * restart based on received bytes?
 #
 # CHANGELOG:
+#  2025.07.12 - Version 2.2.0
+#   - add -E,--endofline option (contributed by mattmart3)
 #  2023.01.13 - Version 2.1.9
 #   - add --hexascii option, and use of date and time options on log output
 #     directories
@@ -142,6 +144,8 @@ Options:
     -e, --endtime=<secs>   End the program after the specified seconds have
                            elapsed.
     -c, --command=<cmd>    Send a command to the port before reading
+    -E, --endofline=<str>  Command end of line. Can be LF, CR or CFLF
+                           (default is LF)
     -t, --time             Print time for each line received.  The time is
                            when the first character of each line is
                            received by grabserial.
@@ -226,7 +230,7 @@ except ImportError:
 
 import serial
 
-VERSION = (2, 1, 9)
+VERSION = (2, 2, 0)
 
 verbose = 0         # pylint: disable=I0011,C0103
 cmdinput = u""      # pylint: disable=I0011,C0103
@@ -335,6 +339,19 @@ def round_time(timestamp, round_to=60):
     return time.mktime(dt.timetuple())
 
 
+# returns new eol, or errors out on bad specifier
+def arg_to_eol(arg):
+    if arg == "LF":
+        return u"\n"
+    elif arg == "CR":
+        return u"\r"
+    elif arg == "CRLF":
+        return u"\r\n"
+    else:
+        eprint("Invalid endofline '%s' specified; use one of CR, LF or CRLF." % arg)
+        sys.exit(2)
+
+
 # grab - main routine to grab a serial port and time the output of each line
 # takes a list of arguments, as they would have been passed in sys.argv
 # that is, a list of strings.
@@ -365,7 +382,7 @@ def grab(arglist, outputfd=sys.stdout):
     try:
         opts, args = getopt.getopt(
             arglist,
-            "hli:d:b:B:w:p:s:xrfc:taTF:m:e:o:AR:QvVq:nSCz", [
+            "hli:d:b:B:w:p:s:xrfc:E:taTF:m:e:o:AR:QvVq:nSCz", [
                 "help",
                 "launchtime",
                 "inlinepat=",
@@ -381,6 +398,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "dtr=",
                 "force-reset",
                 "command=",
+                "endofline=",
                 "time",
                 "again",
                 "systime",
@@ -439,6 +457,7 @@ def grab(arglist, outputfd=sys.stdout):
     out_permissions = "wb"
     append = False
     command = ""
+    eol = u"\n"
     command_mode = False
     skip_device_check = 0
     cr_to_nl = 0
@@ -507,6 +526,8 @@ Use 'grabserial -h' for usage help."""
             sd.stopbits = stop
         if opt in ["-c", "--command"]:
             command = arg
+        if opt in ["-E", "--endofline"]:
+            eol = arg_to_eol(arg)
         if opt in ["-C", "--command-mode"]:
             command_mode = True
         if opt in ["-x", "--xonxoff"]:
@@ -722,7 +743,7 @@ Use 'grabserial -h' for usage help."""
         sd.flushOutput()
 
         if command:
-            command += u"\n"
+            command += eol
             sd.write(command.encode("utf8"))
             sd.flush()
     except serial.serialutil.SerialException:
@@ -747,7 +768,7 @@ Use 'grabserial -h' for usage help."""
     while 1:
         try:
             if cmdinput:
-                sd.write((cmdinput + u"\n").encode("utf8"))
+                sd.write((cmdinput + eol).encode("utf8"))
                 cmdinput = u""
 
             # read exactly 1 byte (for up to one second, based on
