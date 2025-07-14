@@ -135,7 +135,7 @@ def arg_to_eol(arg):
         return u"\n"
     elif arg == "CR":
         return u"\r"
-    elif arg = "CRLF":
+    elif arg == "CRLF":
         return u"\r\n"
     else:
         eprint("Invalid endofline '%s' specified; use one of CR, LF or CRLF." % arg)
