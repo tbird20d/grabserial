@@ -191,6 +191,7 @@ Options:
                            continue running and attemp re-connections after
                            the serial device has been disconnected.
     -n, --nodelta          Skip printing delta between read lines.
+    -N, --noinput          Don't capture stdin.
         --crtonewline      Promote a carriage return to be treated as a
                            newline
     -C, --command-mode     Perform a single command on the serial port, and
@@ -382,7 +383,7 @@ def grab(arglist, outputfd=sys.stdout):
     try:
         opts, args = getopt.getopt(
             arglist,
-            "hli:d:b:B:w:p:s:xrfc:E:taTF:m:e:o:AR:QvVq:nSCz", [
+            "hli:d:b:B:w:p:s:xrfc:E:taTF:m:e:o:AR:QvVq:nNSCz", [
                 "help",
                 "launchtime",
                 "inlinepat=",
@@ -413,6 +414,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "version",
                 "quitpat=",
                 "nodelta",
+                "noinput",
                 "skip",
                 "crtonewline",
                 "command-mode",
@@ -468,6 +470,7 @@ def grab(arglist, outputfd=sys.stdout):
     quiet = False
     systime_format = "%H:%M:%S.%f"
     use_delta = True
+    use_input = True
     out_filenamehasdate = 0
     hex_output = False
     hex_ascii = False
@@ -623,6 +626,8 @@ Use 'grabserial -h' for usage help."""
             skip_device_check = 1
         if opt in ["-n", "--nodelta"]:
             use_delta = False
+        if opt in ["-N", "--noinput"]:
+            use_input = False
         if opt in ["--crtonewline"]:
             cr_to_nl = 1
         if opt in ["--hex-output"]:
@@ -751,11 +756,12 @@ Use 'grabserial -h' for usage help."""
         # Applies to both python 2 and 3 on Linux and Windows.
         stop_reason = "grabserial stopped due to a SerialException"
 
-    # capture stdin to send to serial port
-    try:
-        thread.start_new_thread(read_input, ())
-    except thread.error:
-        print("Error starting thread for read input\n")
+    if use_input:
+        # capture stdin to send to serial port
+        try:
+            thread.start_new_thread(read_input, ())
+        except thread.error:
+            print("Error starting thread for read input\n")
 
     # use stdout encoding, or "utf8" for output
     out_encoding = sys.stdout.encoding
