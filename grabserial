@@ -183,6 +183,14 @@ Options:
                            file specifed with -o option
     -Q, --quiet            Silent on stdout, serial port data is only written
                            to file, if specified.
+    -I, --idle-flush-timeout=<secs>
+                           If the serial port is idle for <secs> seconds while
+                           a partial (un-terminated) line is pending, inject a
+                           newline on stdout so line-oriented consumers (such
+                           as logger/rsyslog) flush it promptly.  Resolution is
+                           tenths of a second; 0 (default) disables.  The file
+                           named with -o is left byte-exact; only stdout
+                           receives the synthetic newline.
     -v, --verbose          Show verbose runtime messages
     -V, --version          Show version number and exit
     -S, --skip             Skip sanity checking of the serial device.
@@ -383,7 +391,7 @@ def grab(arglist, outputfd=sys.stdout):
     try:
         opts, args = getopt.getopt(
             arglist,
-            "hli:d:b:B:w:p:s:xrfc:E:taTF:m:e:o:AR:QvVq:nNSCz", [
+            "hli:d:b:B:w:p:s:xrfc:E:taTF:m:e:o:AR:QvVq:nNSCzI:", [
                 "help",
                 "launchtime",
                 "inlinepat=",
@@ -423,6 +431,7 @@ def grab(arglist, outputfd=sys.stdout):
                 "hex-ascii",
                 "hex-size=",
                 "label=",
+                "idle-flush-timeout=",
             ])
     except getopt.GetoptError as err:
         # print help info and exit
@@ -476,6 +485,7 @@ def grab(arglist, outputfd=sys.stdout):
     hex_ascii = False
     max_bytes_per_line = 16
     line_label=""
+    idle_flush_timeout = 0.0
 
     for opt, arg in opts:
         if opt in ["-h", "--help"]:
@@ -644,6 +654,17 @@ Use 'grabserial -h' for usage help."""
                 max_bytes_per_line = 16
         if opt in ["--label"]:
             line_label = arg
+        if opt in ["-I", "--idle-flush-timeout"]:
+            try:
+                idle_flush_timeout = round(float(arg), 1)
+            except ValueError:
+                eprint("Error: invalid idle-flush-timeout '%s' specified" % arg)
+                sd.close()
+                sys.exit(3)
+            if idle_flush_timeout < 0:
+                eprint("Error: idle-flush-timeout must not be negative")
+                sd.close()
+                sys.exit(3)
 
     if args:
         eprint("Error: unrecognized argument '%s'" % args[0])
@@ -723,12 +744,21 @@ Use 'grabserial -h' for usage help."""
     if quiet:
         vprint("Keeping quiet on stdout")
 
+    if idle_flush_timeout:
+        # Detect idle gaps promptly by capping the serial read timeout to the
+        # idle-flush interval; otherwise a pending partial line could wait up
+        # to the default 1s read timeout before being flushed to stdout.
+        sd.timeout = min(sd.timeout, max(0.1, idle_flush_timeout))
+        vprint("Injecting newline on stdout after %.1fs idle" %
+               idle_flush_timeout)
+
     prev1 = 0
     linetime = 0
     newline = 1
     curline = ""
     xline = b""
     outline_bytecount = 0
+    last_recv_time = None
     vprint("Use Control-C to stop...")
 
     try:
@@ -811,7 +841,23 @@ Use 'grabserial -h' for usage help."""
 
             # if we didn't read anything, loop
             if len(x) == 0:
+                # On an idle read timeout, if a partial (un-terminated) line is
+                # pending on stdout, inject a newline so downstream
+                # line-oriented consumers (e.g. logger/rsyslog) flush it
+                # promptly.  The raw -o output file is left byte-exact; only
+                # stdout gets the synthetic newline, and only once per idle gap.
+                if (idle_flush_timeout and outputfd and not quiet
+                        and not hex_output and not hex_ascii
+                        and not command_mode and curline
+                        and last_recv_time is not None
+                        and (time.time() - last_recv_time) >= idle_flush_timeout):
+                    outputfd.write("\n")
+                    outputfd.flush()
+                    last_recv_time = None
                 continue
+
+            # record activity time for idle-flush detection
+            last_recv_time = time.time()
 
             # convert carriage returns to newlines.
             if x == b"\r" and not hex_output:
